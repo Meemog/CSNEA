@@ -25,6 +25,7 @@ CREATE TABLE answer (
   answerID INTEGER PRIMARY KEY AUTOINCREMENT,
   question INTEGER NOT NULL,
   answerText TEXT NOT NULL,
+  correct BOOLEAN NOT NULL,
   FOREIGN KEY (question) REFERENCES question (questionID)
 );
 

@@ -1,6 +1,8 @@
 import os
 
-from flask import Flask
+from flask import(
+        Flask, jsonify, request, abort
+        )
 
 def create_app(test_config=None):
     app = Flask(__name__, instance_relative_config=True)
@@ -23,10 +25,12 @@ def create_app(test_config=None):
     def hello():
         return 'Hello, World!'
 
+    @app.route('/testData', methods=['GET'])
+    def testData():
+        if request.method == 'GET':
+            return jsonify({'name':'bob', 'occupation':'builder'})
+
     from . import db
     db.init_app(app)
-
-    from . import auth
-    app.register_bluepritn(auth.bp)
 
     return app
