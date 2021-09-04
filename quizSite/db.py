@@ -32,8 +32,21 @@ def init_db_command():
     init_db()
     click.echo('Initialized the database')
 
+def populate_db():
+    db = get_db()
+
+    with current_app.open_resource('testScripts/testData.sql') as f:
+        db.executescript(f.read().decode('utf8'))
+
+@click.command('populate-db')
+@with_appcontext
+def populate_db_command():
+    populate_db()
+    click.echo('Populated the database')
+
 def init_app(app):
     app.teardown_appcontext(close_db)
     app.cli.add_command(init_db_command)
+    app.cli.add_command(populate_db_command)
 
 
