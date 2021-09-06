@@ -23,10 +23,6 @@ def create_app(test_config=None):
 
     from . import db
 
-    @app.route('/hello')
-    def hello():
-        return 'Hello, World!'
-
     @app.route('/testData', methods=['GET'])
     def testData():
         if request.method == 'GET':
