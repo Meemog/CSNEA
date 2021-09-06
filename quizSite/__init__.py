@@ -50,7 +50,7 @@ def create_app(test_config=None):
         if request.method == 'GET':
             database = db.get_db()
 
-            questions = database.execute('SELECT * FROM questions').fetchall()
+            questions = database.execute('SELECT * FROM question').fetchall()
             for row in questions:
                 questionDict = {
                         'questionID':row[0],
