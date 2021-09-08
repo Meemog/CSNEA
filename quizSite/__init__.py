@@ -36,11 +36,14 @@ def create_app(test_config=None): #function that creates the app
             database = db.get_db()
 
             users = database.execute('SELECT * FROM user').fetchall()
+            userDict = {}
             for row in users:
-                userDict = {
-                        'name':row[0],
-                        'password':row[1]
-                        }
+                userDict.update({
+                        row[0]:{
+                            'name':row[0],
+                            'password':row[1]
+                            }
+                        })
             return jsonify(userDict)
 
     @app.route('/questions', methods=['GET'])
@@ -49,13 +52,16 @@ def create_app(test_config=None): #function that creates the app
             database = db.get_db()
 
             questions = database.execute('SELECT * FROM question').fetchall()
+            questionDict = {}
             for row in questions:
-                questionDict = {
+                questionDict.update({
+                    row[0]:{
                         'questionID':row[0],
                         'questionText':row[1],
                         'multipleChoice':row[2],
                         'author':row[3]
                         }
+                    })
             return jsonify(questionDict)
 
     @app.route('/answers', methods=['GET'])
@@ -64,13 +70,16 @@ def create_app(test_config=None): #function that creates the app
             database = db.get_db()
 
             answers = database.execute('SELECT * FROM answer').fetchall()
+            answerDict = {}
             for row in answers:
-                answerDict = {
+                answerDict.update({
+                    row[0]:{
                         'answerID':row[0],
                         'questionID':row[1],
                         'answerText':row[2],
                         'correct':row[3]
                         }
+                    })
             return jsonify(answerDict)
 
     @app.route('/tests', methods=['GET'])
@@ -79,11 +88,14 @@ def create_app(test_config=None): #function that creates the app
             database = db.get_db()
 
             tests = database.execute('SELECT * FROM test').fetchall()
+            testDict = {}
             for row in tests:
-                testDict = {
+                testDict.update({
+                    row[0]:{
                         'testID':row[0],
                         'createdDT':row[1]
                         }
+                    })
             return jsonify(testDict)
 
     @app.route('/topics', methods=['GET'])
