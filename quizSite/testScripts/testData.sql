@@ -23,20 +23,25 @@ VALUES
 
 INSERT INTO topic
 VALUES
-    (0, "addition");
+    (0, "addition"),
+    (1, "surds");
 
 INSERT INTO round
 VALUES
-    (0, 1, 0, 0);
+    (0, 1, 0, 0),
+    (1, 1, 0, 0);
 
 INSERT INTO questionInRound
 VALUES
-    (0, 0);
+    (0, 0),
+    (1, 1);
 
 INSERT INTO userTestSession
 VALUES
-    (0, "Bob", 0, 100, 110);
+    (0, "Bob", 0, 100, 110),
+    (1, "Ben", 0, 100, 115);
 
 INSERT INTO userResponse
 VALUES
-    (0, 0, "2", 10.0, 50);
+    (0, 0, "2", 10.0, 50),
+    (1, 1, "3", 15.0, 0);

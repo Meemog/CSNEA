@@ -37,13 +37,15 @@ def create_app(test_config=None): #function that creates the app
 
             users = database.execute('SELECT * FROM user').fetchall()
             userDict = {}
+            count = 0
             for row in users:
                 userDict.update({
-                        row[0]:{
+                        count:{
                             'name':row[0],
                             'password':row[1]
                             }
                         })
+                count += 1
             return jsonify(userDict)
 
     @app.route('/questions', methods=['GET'])
@@ -53,15 +55,17 @@ def create_app(test_config=None): #function that creates the app
 
             questions = database.execute('SELECT * FROM question').fetchall()
             questionDict = {}
+            count = 0
             for row in questions:
                 questionDict.update({
-                    row[0]:{
+                    count:{
                         'questionID':row[0],
                         'questionText':row[1],
                         'multipleChoice':row[2],
                         'author':row[3]
                         }
                     })
+                count += 1
             return jsonify(questionDict)
 
     @app.route('/answers', methods=['GET'])
@@ -71,15 +75,17 @@ def create_app(test_config=None): #function that creates the app
 
             answers = database.execute('SELECT * FROM answer').fetchall()
             answerDict = {}
+            count = 0
             for row in answers:
                 answerDict.update({
-                    row[0]:{
+                    count:{
                         'answerID':row[0],
                         'questionID':row[1],
                         'answerText':row[2],
                         'correct':row[3]
                         }
                     })
+                count += 1
             return jsonify(answerDict)
 
     @app.route('/tests', methods=['GET'])
@@ -89,13 +95,15 @@ def create_app(test_config=None): #function that creates the app
 
             tests = database.execute('SELECT * FROM test').fetchall()
             testDict = {}
+            count = 1
             for row in tests:
                 testDict.update({
-                    row[0]:{
+                    count:{
                         'testID':row[0],
                         'createdDT':row[1]
                         }
                     })
+                count += 1
             return jsonify(testDict)
 
     @app.route('/topics', methods=['GET'])
@@ -103,12 +111,17 @@ def create_app(test_config=None): #function that creates the app
         if request.method == 'GET':
             database = db.get_db()
 
-            topics = database.execute('SELECT * FROM topics').fetchall()
+            topics = database.execute('SELECT * FROM topic').fetchall()
+            topicDict = {}
+            count = 0
             for row in topics:
-                topicDict = {
+                topicDict.update({
+                    count:{
                         'topicID':row[0],
                         'name':row[1]
                         }
+                    })
+                count += 1
             return jsonify(topicDict)
 
     @app.route('/rounds', methods=['GET'])
@@ -117,26 +130,36 @@ def create_app(test_config=None): #function that creates the app
             database = db.get_db()
 
             rounds = database.execute('SELECT * FROM round').fetchall()
+            roundDict = {}
+            count = 0
             for row in rounds:
-                roundDict = {
+                roundDict.update({
+                    count:{
                         'roundID':row[0],
                         'difficulty':row[1],
                         'topicID':row[2],
                         'testID':row[3]
                         }
+                    })
+                count += 1
             return jsonify(roundDict)
 
-    @app.route('/questionInRound', methods=['GET'])
+    @app.route('/questionsInRound', methods=['GET'])
     def qIRounds():
         if request.method == 'GET':
             database = db.get_db()
 
-            qIRounds = database.execute('SELECT * FROM questionsInRound').fetchall()
+            qIRounds = database.execute('SELECT * FROM questionInRound').fetchall()
+            qIRoundDict = {}
+            count = 0
             for row in qIRounds:
-                qIRoundDict = {
+                qIRoundDict.update({
+                    count:{
                         'roundID':row[0],
                         'questionID':row[1]
                         }
+                    })
+                count += 1
             return jsonify(qIRoundDict)
 
     @app.route('/sessions', methods=['GET'])
@@ -145,14 +168,19 @@ def create_app(test_config=None): #function that creates the app
             database = db.get_db()
 
             sessions = database.execute('SELECT * FROM userTestSession').fetchall()
+            sessionDict = {}
+            count = 0
             for row in sessions:
-                sessionDict= {
+                sessionDict.update({
+                    count:{
                         'userSessionId':row[0],
                         'username':row[1],
                         'testID':row[2],
                         'startDT':row[3],
                         'endDT':row[4]
                         }
+                    })
+                count += 1
             return jsonify(sessionDict)
 
     @app.route('/responses', methods=['GET'])
@@ -161,14 +189,19 @@ def create_app(test_config=None): #function that creates the app
             database = db.get_db()
 
             responses = database.execute('SELECT * FROM userResponse').fetchall()
+            responseDict = {}
+            count = 0
             for row in responses:
-                responseDict= {
+                responseDict.update({
+                    count:{
                         'questionID':row[0],
                         'userSessionID':row[1],
                         'response':row[2],
                         'timeToAnswer':row[3],
                         'score':row[4]
                         }
+                    })
+                count += 1
             return jsonify(responseDict)
 
     db.init_app(app)
