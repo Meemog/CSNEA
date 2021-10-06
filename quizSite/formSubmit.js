@@ -1,20 +1,20 @@
-var answerIndex = 0;
+var noAnswers = 0;
 
 function createNewAnswer() {
   var input = document.createElement("input");
-  input.id = "Answer" + answerIndex;
-  answerIndex += 1;
+  input.id = "Answer" +noAnswers ;
   input.placeholder = "answer";
+  noAnswers += 1;
 
   element = document.getElementById("form1");
   element.appendChild(input);
 }
 
 function removeAnswer(){
-  if (answerIndex != 0){
-    var lastAnswer = document.getElementById("Answer" + (answerIndex-1));
+  if (noAnswers != 0){
+    var lastAnswer = document.getElementById("Answer" + (noAnswers -1));
     lastAnswer.placeholder = "removed";
-    answerIndex -= 1;
+    noAnswers -= 1;
   } else {
     alert("Must have at least one answer");
   }
