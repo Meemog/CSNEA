@@ -5,12 +5,14 @@
   <title>Template</title>
   <meta charset="UTF-8">
 </head>
-<body>
+<body onload="createNewAnswer();">
   <h2>Create question form</h2>
   <div id="form1">
     <input type="text" placeholder="username" id="Username">
     <input type="text" placeholder="question" id="Question">
   </div>
+  <p>Multiple Choice?</p>
+  <input type="checkbox" id="multiChoice">
   <br><br>
   <button type="button" onclick="createNewAnswer();">Add Answer</button>
   <button type="button" onclick="removeAnswer();">Remove Answer</button>
