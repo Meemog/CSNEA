@@ -28,7 +28,7 @@ def create_app(test_config=None): #function that creates the app
     #routes /testData GET requests to this function
     def testData():
         if request.method == 'GET':
-            return jsonify({'name':'bob', 'occupation':'builder'})
+            return jsonify({'name':'bob', 'password':'qwertyuiop'})
 
     @app.route('/users', methods=['GET'])
     def users():

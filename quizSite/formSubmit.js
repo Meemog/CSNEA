@@ -1,20 +1,48 @@
 var noAnswers = 0;
 
 function createNewAnswer() {
-  var input = document.createElement("input");
   noAnswers += 1;
-  input.id = "Answer" +noAnswers ;
+
+  var pretext = document.createElement("P");
+  pretext.innerText = "Enter an answer";
+  pretext.id = "Pretext" + noAnswers;
+
+  var input = document.createElement("input");
+  input.id = "Answer" + noAnswers;
   input.placeholder = "answer";
 
+  var removeBtn = document.createElement("BUTTON");
+  removeBtn.id = "RemoveAnswer" + noAnswers;
+  var idNum = noAnswers;
+  removeBtn.onclick = function(){
+    var lastPretext = document.getElementById("Pretext" + idNum);
+    var lastAnswer = document.getElementById("Answer" + idNum);
+    var lastBreak = document.getElementById("Break" + idNum); //TODO: remove button as well
+    lastPretext.remove();
+    lastAnswer.remove();
+    lastBreak.remove();
+  }
+
+  var br = document.createElement("BR");
+  br.id = "Break" + noAnswers;
+
   element = document.getElementById("form1");
+  element.appendChild(pretext);
   element.appendChild(input);
+  element.appendChild(removeBtn);
+  element.appendChild(br);
 }
 
 function removeAnswer(){
   if (noAnswers != 1){
+    var lastPretext = document.getElementById("Pretext" + (noAnswers -1));
     var lastAnswer = document.getElementById("Answer" + (noAnswers -1));
+    var lastBreak = document.getElementById("Break" + (noAnswers -1));
+    lastPretext.remove();
     lastAnswer.remove();
+    lastBreak.remove();
     noAnswers -= 1;
+    alert(noAnswers);
   } else {
     alert("Must have at least one answer");
   }
