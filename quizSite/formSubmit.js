@@ -4,7 +4,7 @@ function createNewAnswer() {
   noAnswers += 1;
 
   var pretext = document.createElement("P");
-  pretext.innerText = "Enter an answer";
+  pretext.innerText = "Enter answer";
   pretext.id = "Pretext" + noAnswers;
 
   var input = document.createElement("input");
@@ -13,14 +13,19 @@ function createNewAnswer() {
 
   var removeBtn = document.createElement("BUTTON");
   removeBtn.id = "RemoveAnswer" + noAnswers;
+  removeBtn.innerText = "Remove";
+
   var idNum = noAnswers;
   removeBtn.onclick = function(){
+    noAnswers -= 1;
     var lastPretext = document.getElementById("Pretext" + idNum);
     var lastAnswer = document.getElementById("Answer" + idNum);
-    var lastBreak = document.getElementById("Break" + idNum); //TODO: remove button as well
+    var lastButton = document.getElementById("RemoveAnswer" + idNum);
+    var lastBreak = document.getElementById("Break" + idNum);
     lastPretext.remove();
     lastAnswer.remove();
     lastBreak.remove();
+    lastButton.remove();
   }
 
   var br = document.createElement("BR");
