@@ -1,4 +1,5 @@
 var noAnswers = 0;
+var ansArr = [];
 
 function createNewAnswer() {
   noAnswers += 1;
@@ -17,15 +18,22 @@ function createNewAnswer() {
 
   var idNum = noAnswers;
   removeBtn.onclick = function(){
-    noAnswers -= 1;
-    var lastPretext = document.getElementById("Pretext" + idNum);
-    var lastAnswer = document.getElementById("Answer" + idNum);
-    var lastButton = document.getElementById("RemoveAnswer" + idNum);
-    var lastBreak = document.getElementById("Break" + idNum);
-    lastPretext.remove();
-    lastAnswer.remove();
-    lastBreak.remove();
-    lastButton.remove();
+    if (ansArr.length != 1) {
+      var index = ansArr.indexOf(idNum);
+      ansArr.splice(index, 1);
+
+      var lastPretext = document.getElementById("Pretext" + idNum);
+      var lastAnswer = document.getElementById("Answer" + idNum);
+      var lastButton = document.getElementById("RemoveAnswer" + idNum);
+      var lastBreak = document.getElementById("Break" + idNum);
+
+      lastPretext.remove();
+      lastAnswer.remove();
+      lastBreak.remove();
+      lastButton.remove();
+    } else{
+      alert("Must have at least one answer");
+    }
   }
 
   var br = document.createElement("BR");
@@ -36,21 +44,8 @@ function createNewAnswer() {
   element.appendChild(input);
   element.appendChild(removeBtn);
   element.appendChild(br);
-}
 
-function removeAnswer(){
-  if (noAnswers != 1){
-    var lastPretext = document.getElementById("Pretext" + (noAnswers -1));
-    var lastAnswer = document.getElementById("Answer" + (noAnswers -1));
-    var lastBreak = document.getElementById("Break" + (noAnswers -1));
-    lastPretext.remove();
-    lastAnswer.remove();
-    lastBreak.remove();
-    noAnswers -= 1;
-    alert(noAnswers);
-  } else {
-    alert("Must have at least one answer");
-  }
+  ansArr.push(idNum);
 }
 
 function generateNumberedStr(input) {
@@ -68,8 +63,8 @@ function submit() {
   var multiChoice = document.getElementById("multiChoice");
   var answers = [];
 
-  for (let i = 1; i <= noAnswers; i++) {
-    tempAns = document.getElementById("Answer" + i);
+  for (var i = 0; i < ansArr.length; i++) {
+    tempAns = document.getElementById("Answer" + ansArr[i]);
     answers.push(tempAns.value);
   }
 
