@@ -66,12 +66,15 @@ function submit() {
 
   for (var i = 0; i < ansArr.length; i++) {
     tempAns = document.getElementById("Answer" + ansArr[i]);
-    answers.push(tempAns.value);
+    if(tempAns.value){
+      answers.push(tempAns.value);
+    }
   }
 
   if (answers.length == 0){
     errors.push("Enter an answer")
   }
+  alert(answers.length);
 
   var userVal = username.value;
 
