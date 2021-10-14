@@ -72,23 +72,26 @@ function submit() {
   }
 
   if (answers.length == 0){
-    errors.push("Enter an answer")
+    errors.push("Enter an answer");
   }
-  alert(answers.length);
 
   var userVal = username.value;
 
   if (!userVal){
-    errors.push("Enter a username")
+    errors.push("Enter a username");
   }
 
   var questVal = question.value;
 
   if (!questVal){
-    errors.push("Enter a question")
+    errors.push("Enter a question");
   }
 
   var multiBool = (multiChoice.checked ? 1 : 0);
+
+  if (multiBool && answers.length <= 1){
+    errors.push("Enter multiple answers for multiple choice");
+  }
 
   if (errors.length == 0){
     alertStr = ("Posted the following to the API:\nUsername: " + userVal + "\nQuestion: " + questVal + "\nAnswer(s): " + answers + "\nMultiple choice?: " + multiBool)
