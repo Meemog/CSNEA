@@ -62,26 +62,45 @@ function submit() {
   var question = document.getElementById("Question");
   var multiChoice = document.getElementById("multiChoice");
   var answers = [];
+  var errors = [];
 
   for (var i = 0; i < ansArr.length; i++) {
     tempAns = document.getElementById("Answer" + ansArr[i]);
     answers.push(tempAns.value);
   }
 
-  var userVal = username.value;
-  var questVal = question.value;
-  var multiBool = (multiChoice.value ? 1 : 0);
-
-  alertStr = ("Posted the following to the API:\nUsername: " + userVal + "\nQuestion: " + questVal + "\nAnswer(s): " + answers + "\nMultiple choice?: " + multiBool)
-
-  if (multiBool) {
-    var ansTxt = generateNumberedStr(answers);
-    var correct = prompt("Which is the correct answer:\n" + ansTxt);
-    alertStr += "\nCorrect index: " + correct;
+  if (answers.length == 0){
+    errors.push("Enter an answer")
   }
 
+  var userVal = username.value;
 
-  alert(alertStr); //TODO: replace with request code
+  if (!userVal){
+    errors.push("Enter a username")
+  }
+
+  var questVal = question.value;
+
+  if (!questVal){
+    errors.push("Enter a question")
+  }
+
+  var multiBool = (multiChoice.checked ? 1 : 0);
+
+  if (errors.length == 0){
+    alertStr = ("Posted the following to the API:\nUsername: " + userVal + "\nQuestion: " + questVal + "\nAnswer(s): " + answers + "\nMultiple choice?: " + multiBool)
+
+    if (multiBool) {
+      var ansTxt = generateNumberedStr(answers);
+      var correct = prompt("Which is the correct answer:\n" + ansTxt);
+      alertStr += "\nCorrect index: " + correct;
+    }
+
+
+    alert(alertStr); //TODO: replace with request code
+  }else{
+    alert(errors[0]);
+  }
 }
 
 
