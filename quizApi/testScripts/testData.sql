@@ -1,47 +1,26 @@
-INSERT INTO user
+INSERT INTO User
 VALUES
-    ("Bob", "qwertyuiop"),
-    ("Ben", "thisisapassword");
+    (0, "TEST_USER_0", "John Doe", "PASS123", "john@example.com"),
+    (1, "TEST_USER_1", "Joanne Doe", "qwertyuiop", "joanne@example.com");
 
-INSERT INTO question
+INSERT INTO Question
 VALUES
-    (0, "what is 1 + 1", 1, "Bob"),
-    (1, "What is the square root of 9", 0, "Ben");
+    (0, "2x -3 = 9 Find x", 0, "Algebra", 0),
+    (1, "x/3 * 4 = 12 Find x", 0, "Algebra", 0),
+    (2, "4x = 4 Find x", 0, "Algebra", 1),
+    (3, "Divide 180 in the ratio 5:1", 1, "Ratios", 0),
+    (4, "Divide 32 in the ratio 5:3", 1, "Ratios", 0),
+    (5, "Divide 121 in the ratio 3:8", 1, "Ratios", 1);
 
-INSERT INTO answer
+INSERT INTO Answer
 VALUES
-    (0, 0, "2", 1),
-    (1, 0, "3", 0),
-    (2, 0, "99", 0),
-    (3, 1, "3", 1),
-    (4, 1, "three", 1);
-
-INSERT INTO test
-VALUES
-    (0, 100),
-    (1, 200);
-
-INSERT INTO topic
-VALUES
-    (0, "addition"),
-    (1, "surds");
-
-INSERT INTO round
-VALUES
-    (0, 1, 0, 0),
-    (1, 1, 0, 0);
-
-INSERT INTO questionInRound
-VALUES
-    (0, 0),
-    (1, 1);
-
-INSERT INTO userTestSession
-VALUES
-    (0, "Bob", 0, 100, 110),
-    (1, "Ben", 0, 100, 115);
-
-INSERT INTO userResponse
-VALUES
-    (0, 0, "2", 10.0, 50),
-    (1, 1, "3", 15.0, 0);
+    (0, 0, "6", 1),
+    (1, 1, "9", 1),
+    (2, 2, "1", 1),
+    (3, 2, "2", 0),
+    (4, 2, "0", 0),
+    (5, 3, "150:30", 1),
+    (6, 4, "20:12", 1),
+    (7, 5, "33:88", 1),
+    (8, 5, "44:77", 0),
+    (9, 5, "22:77", 0);

@@ -21,6 +21,7 @@ CREATE TABLE Question (
   QuestionText TEXT,
   AuthorID INTEGER,
   Topic TEXT,
+  MultipleChoice BOOLEAN,
   FOREIGN KEY (AuthorID) REFERENCES User(ID)
 );
 
