@@ -4,6 +4,8 @@ from flask import(
         Flask, jsonify, request, abort
         )
 
+from markupsafe import escape
+
 def create_app(test_config=None): #function that creates the app
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
@@ -35,7 +37,7 @@ def create_app(test_config=None): #function that creates the app
         if request.method == 'GET':
             database = db.get_db()
 
-            users = database.execute('SELECT * FROM user').fetchall()
+            users = database.execute('SELECT * FROM User').fetchall()
             userDict = {}
             count = 0
             for row in users:
@@ -50,6 +52,26 @@ def create_app(test_config=None): #function that creates the app
                         })
                 count += 1
             return jsonify(userDict)
+
+    @app.route('/questions/<roundid>')
+    def quizQuestions(roundid):
+        if request.method == 'GET':
+            database = db.get_db()
+
+            command = "SELECT * FROM QuestionInRound WHERE RoundID=" + roundid + ";"
+            questions = database.execute(command).fetchall()
+            questionDict = {}
+            count = 0
+
+            for row in questions:
+                questionDict.update({
+                    count:{
+                        'questionid':row[0],
+                        'roundid':row[1]
+                        }
+                    })
+                count += 1
+            return jsonify(questionDict)
 
     db.init_app(app)
 
