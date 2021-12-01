@@ -58,18 +58,34 @@ def create_app(test_config=None): #function that creates the app
         if request.method == 'GET':
             database = db.get_db()
 
-            command = "SELECT * FROM QuestionInRound WHERE RoundID=" + roundid + ";"
+            command = "SELECT Question.ID, Question.QuestionText, Question.MultipleChoice, Question.AuthorID FROM QuestionInRound INNER JOIN Question ON Question.ID=QuestionInRound.QuestionID WHERE RoundID=" + roundid + ";"
             questions = database.execute(command).fetchall()
             questionDict = {}
             count = 0
 
             for row in questions:
-                questionDict.update({
+                questionID = row[0]
+                text = row[1]
+                multiChoiceBool = row[2]
+                authorID = row[3]
+                authorCommand = "SELECT Username FROM User WHERE ID=" + str(authorID) + ";"
+                author = database.execute(authorCommand).fetchone()
+
+                jsonToAdd = {
                     count:{
-                        'questionid':row[0],
-                        'roundid':row[1]
+                        'ID':questionID,
+                        'Text':text,
+                        'IsMultipleChoice':multiChoiceBool,
+                        'Author':author[0]
                         }
-                    })
+                    }
+
+                if multiChoiceBool == 1:
+                    answerCommand = "SELECT AnswerText FROM Answer WHERE QuestionID=" + str(questionID) + ";"
+                    answers = database.execute(answerCommand).fetchall()
+                    #TODO add answers to jsonToAdd
+
+                questionDict.update(jsonToAdd)
                 count += 1
             return jsonify(questionDict)
 
