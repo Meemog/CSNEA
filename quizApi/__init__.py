@@ -72,20 +72,29 @@ def create_app(test_config=None): #function that creates the app
                 author = database.execute(authorCommand).fetchone()
 
                 jsonToAdd = {
-                    count:{
                         'ID':questionID,
                         'Text':text,
                         'IsMultipleChoice':multiChoiceBool,
                         'Author':author[0]
-                        }
                     }
 
                 if multiChoiceBool == 1:
-                    answerCommand = "SELECT AnswerText FROM Answer WHERE QuestionID=" + str(questionID) + ";"
+                    answerCommand = "SELECT ID, AnswerText FROM Answer WHERE QuestionID=" + str(questionID) + ";"
+                    answerDict = {}
                     answers = database.execute(answerCommand).fetchall()
-                    #TODO add answers to jsonToAdd
+                    count2 = 0
+                    for item in answers:
+                        answerDict.update({count2:{
+                            'ID':item[0],
+                            'AnsText':item[1]
+                            }
+                        })
+                        count2 += 1
 
-                questionDict.update(jsonToAdd)
+                    jsonToAdd.update({'answers':answerDict})
+
+
+                questionDict.update({count:jsonToAdd})
                 count += 1
             return jsonify(questionDict)
 
