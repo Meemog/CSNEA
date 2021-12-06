@@ -98,17 +98,22 @@ def create_app(test_config=None): #function that creates the app
                 count += 1
             return jsonify(questionDict)
 
-    @app.route('/checkAnswer/<questionid>')
-    def CheckAnswer(questionid):
+    @app.route('/checkAnswers/<roundid>')
+    def CheckAnswer(roundid): #expexts json in the response in the form {questionID: answer}
         if request.method == 'GET':
+            #TODO this needs to take in a series of answers and mark all of them
+            # QuestionID needs to be gotten from the round table, not the request
             database = db.get_db()
-            userAnswer = request.get_data(as_text=True)
-            command = "SELECT AnswerText FROM Answer WHERE ID=" + str(questionid) + " AND Correct=1;"
-            rows = database.execute(command).fetchall()
-            correctAnswer = rows[0][0]
-            correct = (userAnswer == correctAnswer)
 
-            return jsonify({"correct": correct})
+            userAnswers = request.get_json()
+
+            command = "SELECT Question.ID FROM QuestionInRound WHERE RoundID=" + str(roundid) + ";"
+            rows = database.execute(command).fetchall()
+            for row in rows:
+                questionID = row[0]
+                answerCommand = "SELECT AnswerText FROM Answers WHERE ID=" + quesitonID + " AND Correct=1;"
+
+            return jsonify({"correct": correct}) #should return in the form {questionID: isCorrect}
 
     db.init_app(app)
 
