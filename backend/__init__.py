@@ -98,6 +98,18 @@ def create_app(test_config=None): #function that creates the app
                 count += 1
             return jsonify(questionDict)
 
+    @app.route('/checkAnswer/<questionid>')
+    def CheckAnswer(questionid):
+        if request.method == 'GET':
+            database = db.get_db()
+            userAnswer = request.get_data(as_text=True)
+            command = "SELECT AnswerText FROM Answer WHERE ID=" + str(questionid) + " AND Correct=1;"
+            rows = database.execute(command).fetchall()
+            correctAnswer = rows[0][0]
+            correct = (userAnswer == correctAnswer)
+
+            return jsonify({"correct": correct})
+
     db.init_app(app)
 
     return app
