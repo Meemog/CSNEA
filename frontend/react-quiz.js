@@ -35,17 +35,6 @@ const testData = {
   }
 };
 
-
-const getData = function(id) {
-  let dict = testData[id];
-  let str = '';
-  str += dict["ID"] + ', ';
-  str += dict["Author"] + ', ';
-  str += dict["IsMultipleChoice"] + ', ';
-  str += dict["Text"] + ', ';
-  return str;
-};
-
 const x = React.createElement(
   'div',
   null,
@@ -53,12 +42,39 @@ const x = React.createElement(
     'h1',
     null,
     'Quiz'
-    ), React.createElement(
-    'h4',
+    )
+  );
+
+const createQuestionForm = (id) => {
+  const getQuestion = (id) =>{
+    const question = React.createElement(
+      'h4',
+      null,
+      testData[id]['Text']);
+    return question
+  }
+
+  const getAuthor = (id) =>{
+    const author = React.createElement(
+      'h5',
+      null,
+      ('Question By: '+ testData[id]['Author']));
+    return author
+  }
+
+  const inputBox = React.createElement(
+    'input',
+
+
+  const questionForm = React.createElement(
+    'div',
     null,
-    'that i made'
-    ),
-);
+    getQuestion(id), getAuthor(id), 
+  )
+
+}
+
+
 
 ReactDOM.render(x, document.getElementById('app'));
 

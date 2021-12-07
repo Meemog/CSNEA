@@ -33,8 +33,7 @@ def create_app(test_config=None): #function that creates the app
 
     from . import db
 
-    @app.route('/testData', methods=['GET']) 
-    #routes /testData GET requests to this function
+    @app.route('/testData', methods=['GET'])  #routes /testData GET requests to this function
     def testData():
         if request.method == 'GET':
             return jsonify({'name':'bob', 'password':'qwertyuiop'})
@@ -59,6 +58,8 @@ def create_app(test_config=None): #function that creates the app
                         })
                 count += 1
             return jsonify(userDict)
+
+
 
     @app.route('/questions/<roundid>')
     def quizQuestions(roundid):
