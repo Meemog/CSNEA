@@ -6,6 +6,13 @@ from flask import(
 
 from markupsafe import escape
 
+testDict = {'answers': {
+    0: "6",
+    1: "9",
+    2: "2"
+    }}
+    #TODO: Remove this
+
 def create_app(test_config=None): #function that creates the app
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
@@ -101,19 +108,31 @@ def create_app(test_config=None): #function that creates the app
     @app.route('/checkAnswers/<roundid>')
     def CheckAnswer(roundid): #expexts json in the response in the form {questionID: answer}
         if request.method == 'GET':
-            #TODO this needs to take in a series of answers and mark all of them
-            # QuestionID needs to be gotten from the round table, not the request
+            #TODO: replace test data with actual request
             database = db.get_db()
 
-            userAnswers = request.get_json()
+            #userAnswers = request.get_json()
+            userAnswers = testDict
 
-            command = "SELECT Question.ID FROM QuestionInRound WHERE RoundID=" + str(roundid) + ";"
+            #gets the correct questions and answers from the round
+            command = "SELECT QuestionID FROM QuestionInRound WHERE RoundID=" + str(roundid) + ";"
             rows = database.execute(command).fetchall()
-            for row in rows:
-                questionID = row[0]
-                answerCommand = "SELECT AnswerText FROM Answers WHERE ID=" + quesitonID + " AND Correct=1;"
+            toAdd = {}
 
-            return jsonify({"correct": correct}) #should return in the form {questionID: isCorrect}
+            for row in rows:
+                try: #selects the answers for all the questions in the current round
+                    questionID = row[0]
+                    answerCommand = "SELECT AnswerText FROM Answer WHERE ID=" + str(questionID) + " AND Correct=1;"
+                    correctAnswer = database.execute(answerCommand).fetchone()[0]
+                    toAdd.update({questionID: {
+                        'correctAnswer': correctAnswer,
+                        'userAnswer': userAnswers['answers'][questionID],
+                        'correct': (correctAnswer == userAnswers['answers'][questionID])
+                        }})
+                except: #if the questions don't match up, a bad request error is returned
+                    return("Bad Request", 400)
+
+            return jsonify(toAdd) #returns in the form {questionID: {isCorrect, userAnswer, correctAnswer}}
 
     db.init_app(app)
 
