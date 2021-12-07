@@ -104,7 +104,9 @@ def create_app(test_config=None): #function that creates the app
 
                 questionDict.update({count:jsonToAdd})
                 count += 1
-            return jsonify(questionDict)
+            response = jsonify(questionDict)
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response
 
     @app.route('/checkAnswers/<roundid>')
     def CheckAnswer(roundid): #expexts json in the response in the form {questionID: answer}

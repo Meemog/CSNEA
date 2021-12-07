@@ -74,5 +74,20 @@ class QuestionForm extends React.Component {
   }
 }
 
+let myHeaders = new Headers();
+let myInit = { method: 'GET',
+  headers: myHeaders,
+  mode: 'cors',
+  cache: 'default'
+};
+let myRequest = new Request("http://127.0.0.1:5000/questions/0", myInit);
 
-ReactDOM.render(<QuestionForm data={testData}/>, document.getElementById("root"));
+const fetchPromise = fetch(myRequest);
+
+fetchPromise
+  .then((response) => response.json())
+  .then(data => console.log(data));
+
+console.log('first');
+
+//ReactDOM.render(<QuestionForm data={testData}/>, document.getElementById("root"))
