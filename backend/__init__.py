@@ -1,7 +1,8 @@
 import os
+import json
 
 from flask import(
-        Flask, jsonify, request, abort
+        Flask, jsonify, request, abort, json
         )
 
 from markupsafe import escape
@@ -61,7 +62,7 @@ def create_app(test_config=None): #function that creates the app
 
 
 
-    @app.route('/questions/<roundid>')
+    @app.route('/questions/<roundid>', methods=['GET'])
     def quizQuestions(roundid):
         if request.method == 'GET':
             database = db.get_db()
@@ -108,14 +109,14 @@ def create_app(test_config=None): #function that creates the app
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response
 
-    @app.route('/checkAnswers/<roundid>')
+    @app.route('/checkAnswers/<roundid>', methods=['GET', 'POST'])
     def CheckAnswer(roundid): #expexts json in the response in the form {questionID: answer}
-        if request.method == 'GET':
-            #TODO: replace test data with actual request
+        if request.method == 'POST':
             database = db.get_db()
 
-            #userAnswers = request.get_json()
-            userAnswers = testDict
+
+            userAnswers = json.loads(request.data.decode())
+            print(userAnswers)
 
             #gets the correct questions and answers from the round
             command = "SELECT QuestionID FROM QuestionInRound WHERE RoundID=" + str(roundid) + ";"
@@ -124,18 +125,25 @@ def create_app(test_config=None): #function that creates the app
 
             for row in rows:
                 try: #selects the answers for all the questions in the current round
-                    questionID = row[0]
-                    answerCommand = "SELECT AnswerText FROM Answer WHERE ID=" + str(questionID) + " AND Correct=1;"
+                    questionID = str(row[0])
+                    answerCommand = "SELECT AnswerText FROM Answer WHERE questionID=" + questionID + " AND Correct=1;"
                     correctAnswer = database.execute(answerCommand).fetchone()[0]
+                    print(questionID)
                     toAdd.update({questionID: {
                         'correctAnswer': correctAnswer,
                         'userAnswer': userAnswers['answers'][questionID],
                         'correct': (correctAnswer == userAnswers['answers'][questionID])
                         }})
                 except: #if the questions don't match up, a bad request error is returned
-                    return("Bad Request", 400)
+                    response = jsonify({"error": "Bad Request",
+                        "expected": testDict,
+                        "recieved": userAnswers})
+                    response.headers.add('Access-Control-Allow-Origin', '*')
+                    return(response, 400)
 
-            return jsonify(toAdd) #returns in the form {questionID: {isCorrect, userAnswer, correctAnswer}}
+            response = jsonify(toAdd);
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return response #returns in the form {questionID: {isCorrect, userAnswer, correctAnswer}}
 
     db.init_app(app)
 

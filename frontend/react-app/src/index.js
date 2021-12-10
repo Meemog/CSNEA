@@ -9,6 +9,7 @@ class QuestionForm extends React.Component {
     this.generateForm = this.generateForm.bind(this);
     this.getAnswers = this.getAnswers.bind(this);
     this.questions = []
+    this.answers = {'answers': {}}
   }
 
   generateQuestion(id, index) {
@@ -29,7 +30,6 @@ class QuestionForm extends React.Component {
       toRender.push(this.generateQuestion([key], i))
       i += 1;
     }
-    console.log(this.questions);
     const x = <form>
       {toRender}
       <input type="button" value="Submit" onClick={() => {this.getAnswers()}}/>
@@ -39,8 +39,32 @@ class QuestionForm extends React.Component {
   }
   getAnswers() {
     for (let j=0; j < this.questions.length; j++){
-      console.log("answer: " + document.getElementById('textInput' + j.toString()).value + "\n id: " + this.questions[j][1] + "\n");
+      this.answers['answers'][this.questions[j][1]] = (document.getElementById('textInput' + j.toString()).value);
     }
+    this.submitAnswers(this.answers);
+  }
+
+  submitAnswers(ansDict) {
+    let ansHeaders = new Headers();
+    ansHeaders.set('Content-Type', 'application/json');
+    let ansInit = { method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+        },
+      mode: 'no-cors',
+      cache: 'default',
+      body: JSON.stringify(ansDict)
+    }
+
+    let ansRequest = new Request(("http://127.0.0.1:5000/checkAnswers/" + this.props.roundId), ansInit);
+    const ansPromise = fetch(ansRequest);
+
+    ansPromise
+      .then((response) => response)
+      .then((data) => console.log(data));
+
+
   }
 
   render() {
