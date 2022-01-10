@@ -65,6 +65,10 @@ def create_app(test_config=None): #function that creates the app
     @app.route('/questions/<roundid>', methods=['GET'])
     def quizQuestions(roundid):
         if request.method == 'GET':
+            try:
+                int(roundid)
+            except:
+                abort(404)
             database = db.get_db()
 
             command = "SELECT Question.ID, Question.QuestionText, Question.MultipleChoice, Question.AuthorID FROM QuestionInRound INNER JOIN Question ON Question.ID=QuestionInRound.QuestionID WHERE RoundID=" + roundid + ";"
@@ -112,6 +116,10 @@ def create_app(test_config=None): #function that creates the app
     @app.route('/checkAnswers/<roundid>', methods=['GET', 'POST'])
     def CheckAnswer(roundid): #expexts json in the response in the form {questionID: answer}
         if request.method == 'POST':
+            try:
+                int(roundid)
+            except:
+                abort(404)
             database = db.get_db()
 
 
@@ -135,11 +143,10 @@ def create_app(test_config=None): #function that creates the app
                         'correct': (correctAnswer == userAnswers['answers'][questionID])
                         }})
                 except: #if the questions don't match up, a bad request error is returned
-                    response = jsonify({"error": "Bad Request",
-                        "expected": testDict,
+                    response = jsonify({"error": "Unprocessable Entity",
                         "recieved": userAnswers})
                     response.headers.add('Access-Control-Allow-Origin', '*')
-                    return(response, 400)
+                    return(response, 422)
 
             response = jsonify(toAdd);
             response.headers.add('Access-Control-Allow-Origin', '*')
