@@ -150,7 +150,7 @@ def create_app(test_config=None): #function that creates the app
 
             response = jsonify(toAdd);
             response.headers.add('Access-Control-Allow-Origin', '*')
-            return response #returns in the form {questionID: {isCorrect, userAnswer, correctAnswer}}
+            return (response, 200) #returns in the form {questionID: {isCorrect, userAnswer, correctAnswer}}
 
     db.init_app(app)
 
