@@ -5,6 +5,7 @@ class HomePage extends React.Component {
     super(props);
     this.content = (
       <div>
+        <h1>Homepage</h1>
         <p>Hello this is the homepage</p>
       </div>
     );

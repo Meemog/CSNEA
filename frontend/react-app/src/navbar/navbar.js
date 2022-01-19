@@ -6,7 +6,7 @@ class NavBar extends React.Component {
   constructor(props) {
     super(props);
     this.content = (
-      <nav class='topnav'>
+      <nav className='topnav'>
         <ul>
           <span>
             <Link to="/">Home</Link>

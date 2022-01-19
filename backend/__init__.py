@@ -7,13 +7,6 @@ from flask import(
 
 from markupsafe import escape
 
-testDict = {'answers': {
-    0: "6",
-    1: "9",
-    2: "2"
-    }}
-    #TODO: Remove this
-
 def create_app(test_config=None): #function that creates the app
     app = Flask(__name__, instance_relative_config=True)
     app.config.from_mapping(
@@ -62,7 +55,7 @@ def create_app(test_config=None): #function that creates the app
 
 
 
-    @app.route('/questions/<roundid>', methods=['GET'])
+    @app.route('/questions/<roundid>', methods=['GET', 'POST'])
     def quizQuestions(roundid):
         if request.method == 'GET':
             try:
@@ -112,6 +105,19 @@ def create_app(test_config=None): #function that creates the app
             response = jsonify(questionDict)
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response
+        elif request.method == 'POST':
+            print('gotHere')
+            #get data from request
+            question = json.loads(request.data.decode())
+            print(question)
+            #format data
+            #add data to db
+
+            response = jsonify({'recieved': 1})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+
+            return(response, 200)
+
 
     @app.route('/checkAnswers/<roundid>', methods=['GET', 'POST'])
     def CheckAnswer(roundid): #expexts json in the response in the form {questionID: answer}
@@ -148,9 +154,29 @@ def create_app(test_config=None): #function that creates the app
                     response.headers.add('Access-Control-Allow-Origin', '*')
                     return(response, 422)
 
-            response = jsonify(toAdd);
+            response = jsonify(toAdd)
             response.headers.add('Access-Control-Allow-Origin', '*')
             return (response, 200) #returns in the form {questionID: {isCorrect, userAnswer, correctAnswer}}
+
+    @app.route('/topics', methods=['GET'])  #routes /topics GET requests to this function
+    def topics():
+        if request.method == 'GET':
+            database = db.get_db()
+
+            try:
+                topics = {}
+                topicCommand = "SELECT TopicName FROM Topic"
+                topicObject = database.execute(topicCommand).fetchall()
+                count = 0
+                for item in topicObject:
+                    topics.update({count: item[0]})
+                    count += 1
+
+                response = jsonify(topics)
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                return (response, 200)
+            except:
+                return ('error', 500)
 
     db.init_app(app)
 
