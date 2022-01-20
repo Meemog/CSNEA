@@ -87,9 +87,13 @@ class QuestionPage extends React.Component {
     this.content = (
         <div>
           <h1>Quiz</h1>
-          <p>Enter RoundID</p>
-          <input type="text" id='roundid' />
-          <input type="button" value="Get Questions" onClick={() => {this.renderForm(document.getElementById('roundid').value)}} />
+          <span>
+            <p>Enter RoundID</p>
+            <input type="text" id='roundid' />
+          </span>
+          <span>
+            <input type="button" value="Get Questions" onClick={() => {this.renderForm(document.getElementById('roundid').value)}} />
+          </span>
         </div>
       )
   }

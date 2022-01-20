@@ -215,19 +215,17 @@ class QuestionForm extends React.Component {
     return (
       <div>
         <h1>Create Question</h1>
-        <span>
+        <span className="col-sm-4">
           <p>Enter the Question:</p>
           <input id='QuestionText' type='text' />
         </span>
         <span>
           {this.turnObjectToArray(this.answerFields)}
         </span>
-          <br />
-          <span>
+        <span>
             <input type="button" value="Add Answer" onClick={() => {this.addToAnswers()}}/>
           </span>
         <span>
-          <br />
           <select name="topic" id="topic">
             {this.topics}
           </select>
@@ -240,7 +238,6 @@ class QuestionForm extends React.Component {
             <option value='Hard'>Hard</option>
           </select>
         </span>
-        <br />
         <span>
           <input type="button" value="Submit" onClick={() => {this.submit()}} />
         </span>

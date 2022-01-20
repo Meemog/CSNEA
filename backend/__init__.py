@@ -237,6 +237,4 @@ def create_app(test_config=None): #function that creates the app
             except:
                 return ('error', 500)
 
-
-
     return app
