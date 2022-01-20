@@ -1,4 +1,6 @@
 #!/bin/bash
+rm instance/quizSite.sqlite
+echo "removed old database"
 
 export FLASK_APP=backend
 export FLASK_ENV=development

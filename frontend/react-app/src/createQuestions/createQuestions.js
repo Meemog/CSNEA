@@ -42,20 +42,46 @@ class QuestionForm extends React.Component {
   }
 
   getDataFromAnswerFields() {
-    let answers = []
+    let answers = [];
+    let valid = true;
     for (const [key] of Object.keys(this.answerFields)){
-      answers.push(document.getElementById("textInput" + key).value)
+      let toAdd = document.getElementById("textInput" + key).value
+      if (!toAdd){
+        valid = false;
+      }
+      answers.push(toAdd);
     }
-    return answers
+    if (valid){
+      return answers
+    }else{
+      return false
+    }
   }
 
   getData() {
+    let actions = []
     let questionText = document.getElementById('QuestionText').value;
+    if (!questionText){
+      actions.push('Write the question')
+    }
     let answers = this.getDataFromAnswerFields();
+    if (!answers){
+      actions.push('Enter an answer')
+    }
     let topic = document.getElementById('topic').value;
+    if (topic === '-1'){
+      actions.push('Choose a topic')
+    }
     let difficulty = document.getElementById('difficulty').value;
+    if (difficulty === '-1'){
+      actions.push('Choose a difficulty')
+    }
     let multipleChoice = ((Object.keys(this.answerFields).length > 1) ? true : false)
-    return [questionText, answers, topic, difficulty, multipleChoice];
+    if (actions.length > 0){
+      return [actions, false];
+    }else{
+      return [[questionText, answers, topic, difficulty, multipleChoice], true];
+    }
   }
 
   removeItemFromObject(key){
@@ -90,7 +116,7 @@ class QuestionForm extends React.Component {
       .then((data) => {
         let options = [(<option value="-1">Select Topic</option>)]
         for (const[key, value] of Object.entries(data)){
-          options.push(<option value={value}>{value}</option>);
+          options.push(<option value={value['id']}>{value['name']}</option>);
         }
         this.topics = options
         this.setState( { state: this.state } )
@@ -98,60 +124,90 @@ class QuestionForm extends React.Component {
   }
   submit(){
     let data = this.getData(); //data is an array of: [questionText, answers, topic, difficulty, multipleChoice]
-    console.log(data);
-    let questionText = data[0];
-    let answers = data[1];
-    let topic = data[2];
-    let difficulty = data[3];
-    let multipleChoice = data[4];
+    if (data[1]){
+      //if the data is valid format the data and send to the API
+      let questionText = data[0][0];
+      let answers = data[0][1];
+      let topic = data[0][2];
+      let difficulty = data[0][3];
+      let multipleChoice = data[0][4];
 
-    let ansDict = {0: {
-      'ansText': answers[0],
-      'correct': 1
+      let ansString = ''
+      for (let i=0; i < answers.length; i++){
+        ansString += (answers[i] + ', ');
       }
-    }
-    for (let i = 1; i < answers.length; i++){
-      ansDict[i] = {
-        'ansText': answers[i],
-        'correct': 0}
-    }
-    /*
-      format data in the form
-      {questionText: text,
-      answers: {
-        1: {
-          ansText: text,
-          correct: boolean
+      ansString =ansString.substring(0, ansString.length-2);
+
+      let willWont = (multipleChoice ? "will":"Won't")
+
+      let choice = prompt(`Is this what you want to submit?\nText: ${questionText}\nAnswers: ${ansString}\nTopic: ${topic}\nDifficulty: ${difficulty}\nThis question ${willWont} be multiple choice because of the number of answers\n(Y)es or (N)o`);
+
+      if (choice === 'Y'){
+        //creates dictionary of answers
+        let ansDict = {0: {
+          'ansText': answers[0],
+          'correct': 1
           }
-        },
-      topic: text,
-      difficulty: text
+        }
+        for (let i = 1; i < answers.length; i++){
+          ansDict[i] = {
+            'ansText': answers[i],
+            'correct': 0}
+        }
+        /*
+          format data in the form
+          {questionText: text,
+          answers: {
+            1: {
+              ansText: text,
+              correct: boolean
+              }
+            },
+          topic: text,
+          difficulty: text
+          }
+        */
+        let toSubmit = {
+          'text': questionText,
+          'answers': ansDict,
+          'topic': topic,
+          'difficulty': difficulty,
+          'multipleChoice': multipleChoice
+        }
+
+        //Submiting to the API
+
+        let questionInit = { method: 'POST',
+          headers: {
+            'Content-Type': 'text/plain'
+            },
+          cache: 'default',
+          mode: 'cors',
+          body: JSON.stringify(toSubmit)
+        }
+
+        let questionRequest = new Request(("http://127.0.0.1:5000/questions/-1"), questionInit);
+        const questionPromise = fetch(questionRequest);
+
+        questionPromise
+          .then((response) => response.status)
+          .then(status => {
+            if (status === 200){
+              alert("Question succesfully submitted");
+            }else{
+              alert(`There was an error in submission\nResponse Code: ${status}`);
+            }
+          })
       }
-    */
-    let toSubmit = {
-      'text': questionText,
-      'answers': ansDict,
-      'topic': topic,
-      'difficulty': difficulty,
-      'multipleChoice': multipleChoice
+    }else{
+      //or log all problems
+      let actions = data[0]
+      let toAlert = 'There are some problems with this question.\nPlease complete the following actions:\n\n';
+      for (let i=0; i < actions.length; i++){
+        toAlert = toAlert + '- ' + actions[i]+ '\n';
+      }
+      alert(toAlert);
     }
-    console.log(toSubmit);
-
-    let questionInit = { method: 'POST',
-      headers: {
-        'Content-Type': 'text/plain'
-        },
-      cache: 'default',
-      mode: 'cors',
-      body: JSON.stringify(toSubmit)
-    }
-
-    let questionRequest = new Request(("http://127.0.0.1:5000/questions/-1"), questionInit);
-    const questionPromise = fetch(questionRequest);
-
-    questionPromise
-      .then((response) => response.json())
-      .then(data => console.log(data))
 
   }
 

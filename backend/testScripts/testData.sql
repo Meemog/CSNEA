@@ -10,12 +10,12 @@ VALUES
 
 INSERT INTO Question
 VALUES
-    (0, "2x -3 = 9 Find x", 0, 0, 0, 1),
-    (1, "x/3 * 4 = 12 Find x", 0, 0, 0, 1),
-    (2, "4x = 4 Find x", 0, 0, 1, 1),
-    (3, "Divide 180 in the ratio 5:1", 1, 1, 0, 1),
-    (4, "Divide 32 in the ratio 5:3", 1, 1, 0, 1),
-    (5, "Divide 121 in the ratio 3:8", 1, 1, 1, 1);
+    (0, "2x -3 = 9 Find x", 0, 0, 0, 'Medium'),
+    (1, "x/3 * 4 = 12 Find x", 0, 0, 0, 'Medium'),
+    (2, "4x = 4 Find x", 0, 0, 1, 'Medium'),
+    (3, "Divide 180 in the ratio 5:1", 1, 1, 0, 'Medium'),
+    (4, "Divide 32 in the ratio 5:3", 1, 1, 0, 'Medium'),
+    (5, "Divide 121 in the ratio 3:8", 1, 1, 1, 'Medium');
 
 INSERT INTO Answer
 VALUES

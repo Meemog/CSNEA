@@ -28,7 +28,7 @@ CREATE TABLE Question (
   AuthorID INTEGER,
   TopicID INTEGER,
   MultipleChoice BOOLEAN,
-  Difficulty INTEGER,
+  Difficulty TEXT,
   FOREIGN KEY (AuthorID) REFERENCES User(ID)
   FOREIGN KEY (TopicID) REFERENCES Topic(ID)
 );

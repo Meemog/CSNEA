@@ -26,6 +26,7 @@ def create_app(test_config=None): #function that creates the app
         pass
 
     from . import db
+    db.init_app(app)
 
     @app.route('/testData', methods=['GET'])  #routes /testData GET requests to this function
     def testData():
@@ -37,7 +38,9 @@ def create_app(test_config=None): #function that creates the app
         if request.method == 'GET':
             database = db.get_db()
 
-            users = database.execute('SELECT * FROM User').fetchall()
+            userCommand = 'SELECT * FROM User'
+            users = database.execute(userCommand).fetchall()
+            print(f"Executed command: {userCommand}")
             userDict = {}
             count = 0
             for row in users:
@@ -54,7 +57,6 @@ def create_app(test_config=None): #function that creates the app
             return jsonify(userDict)
 
 
-
     @app.route('/questions/<roundid>', methods=['GET', 'POST'])
     def quizQuestions(roundid):
         if request.method == 'GET':
@@ -66,6 +68,7 @@ def create_app(test_config=None): #function that creates the app
 
             command = "SELECT Question.ID, Question.QuestionText, Question.MultipleChoice, Question.AuthorID FROM QuestionInRound INNER JOIN Question ON Question.ID=QuestionInRound.QuestionID WHERE RoundID=" + roundid + ";"
             questions = database.execute(command).fetchall()
+            print(f"Executed command: {command}")
             questionDict = {}
             count = 0
 
@@ -76,6 +79,7 @@ def create_app(test_config=None): #function that creates the app
                 authorID = row[3]
                 authorCommand = "SELECT Username FROM User WHERE ID=" + str(authorID) + ";"
                 author = database.execute(authorCommand).fetchone()
+                print(f"Executed command: {authorCommand}")
 
                 jsonToAdd = {
                         'ID':questionID,
@@ -88,6 +92,7 @@ def create_app(test_config=None): #function that creates the app
                     answerCommand = "SELECT ID, AnswerText FROM Answer WHERE QuestionID=" + str(questionID) + ";"
                     answerDict = {}
                     answers = database.execute(answerCommand).fetchall()
+                    print(f"Executed command: {answerCommand}")
                     count2 = 0
                     for item in answers:
                         answerDict.update({count2:{
@@ -105,18 +110,65 @@ def create_app(test_config=None): #function that creates the app
             response = jsonify(questionDict)
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response
+
         elif request.method == 'POST':
-            print('gotHere')
+            responseText = {'recieved': 1}
+            responseCode = 200
             #get data from request
             question = json.loads(request.data.decode())
-            print(question)
-            #format data
-            #add data to db
 
-            response = jsonify({'recieved': 1})
+            #extract data
+            try:
+                questionText = question['text']
+                answers = question['answers']
+                topic = question['topic']
+                difficulty = question['difficulty']
+                multipleChoice = question['multipleChoice']
+            except:
+                responseCode = 422
+                responseText = 'json in wrong format'
+
+            database = db.get_db()
+
+            #add data to db
+            if responseCode == 200:
+                values = f"('{questionText}', 0, {topic}, {multipleChoice}, '{difficulty}')"
+                query = f"INSERT INTO Question(QuestionText, AuthorID, TopicID, MultipleChoice, Difficulty) VALUES {values};"
+                try:
+                    database.execute(query)
+                    database.commit()
+                    print(f"Executed command: {query}")
+                except:
+                    responseCode = 422
+                    responseText = "Couldn't write to the database"
+
+            if responseCode == 200:
+                ansQuery = "INSERT INTO Answer(QuestionID, AnswerText, Correct) VALUES "
+                for key in answers:
+                    idQuery = "SELECT MAX(ID) FROM Question;"
+                    bigIdCursor = database.execute(idQuery).fetchone()
+                    print(f"Executed command: {idQuery}")
+
+                    text = answers[key]['ansText']
+                    correct = answers[key]['correct']
+                    ansQuery = ansQuery + f"({bigIdCursor[0]}, '{text}', {correct}),"
+                ansQuery = ansQuery[:-1]
+
+                try:
+                    database.execute(ansQuery)
+                    database.commit()
+                    print(f"Executed command: {ansQuery}")
+                except:
+                    responseCode = 422
+                    responseText = "Couldn't write to the database"
+
+
+
+            #submit response
+            response = jsonify(responseText)
             response.headers.add('Access-Control-Allow-Origin', '*')
 
-            return(response, 200)
+            return(response, responseCode)
 
 
     @app.route('/checkAnswers/<roundid>', methods=['GET', 'POST'])
@@ -135,6 +187,7 @@ def create_app(test_config=None): #function that creates the app
             #gets the correct questions and answers from the round
             command = "SELECT QuestionID FROM QuestionInRound WHERE RoundID=" + str(roundid) + ";"
             rows = database.execute(command).fetchall()
+            print(f"Executed command: {command}")
             toAdd = {}
 
             for row in rows:
@@ -142,6 +195,7 @@ def create_app(test_config=None): #function that creates the app
                     questionID = str(row[0])
                     answerCommand = "SELECT AnswerText FROM Answer WHERE questionID=" + questionID + " AND Correct=1;"
                     correctAnswer = database.execute(answerCommand).fetchone()[0]
+                    print(f"Executed command: {answerCommand}")
                     print(questionID)
                     toAdd.update({questionID: {
                         'correctAnswer': correctAnswer,
@@ -165,11 +219,16 @@ def create_app(test_config=None): #function that creates the app
 
             try:
                 topics = {}
-                topicCommand = "SELECT TopicName FROM Topic"
+                topicCommand = "SELECT ID, TopicName FROM Topic"
                 topicObject = database.execute(topicCommand).fetchall()
+                print(f"Executed command: {topicCommand}")
+
                 count = 0
                 for item in topicObject:
-                    topics.update({count: item[0]})
+                    topics.update({count: {
+                        'id': item[0],
+                        'name': item[1]}
+                        })
                     count += 1
 
                 response = jsonify(topics)
@@ -178,6 +237,6 @@ def create_app(test_config=None): #function that creates the app
             except:
                 return ('error', 500)
 
-    db.init_app(app)
+
 
     return app
