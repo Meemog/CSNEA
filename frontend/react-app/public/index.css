@@ -62,12 +62,12 @@
           align-items: center;
               justify-content: center;
       }
-      #root > div > div > span:last-child {
+      #root > div > div.createQuestion> span:last-child {
           flex-basis: 100%;
           background-color: transparent;
       }
-      #root > div > div > span:last-child input[type=button] {
-          width: 100%;
+      #root > div > div.createQuestion > span:last-child input[type=button] {
+          width: 50%;
           background-color: deepskyblue;
           border: 0;
       }
@@ -83,6 +83,9 @@
           margin-right: 10px;
           border-radius: 3ch;
           border: 2px solid #ccc;
+      }
+      #root > div > div.chooseMode > span input[type=button]{
+        background-color: deepskyblue;
       }
       select {
           background-color: #fff;

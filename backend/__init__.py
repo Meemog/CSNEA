@@ -144,11 +144,10 @@ def create_app(test_config=None): #function that creates the app
 
             if responseCode == 200:
                 ansQuery = "INSERT INTO Answer(QuestionID, AnswerText, Correct) VALUES "
+                idQuery = "SELECT MAX(ID) FROM Question;"
+                bigIdCursor = database.execute(idQuery).fetchone()
+                print(f"Executed command: {idQuery}")
                 for key in answers:
-                    idQuery = "SELECT MAX(ID) FROM Question;"
-                    bigIdCursor = database.execute(idQuery).fetchone()
-                    print(f"Executed command: {idQuery}")
-
                     text = answers[key]['ansText']
                     correct = answers[key]['correct']
                     ansQuery = ansQuery + f"({bigIdCursor[0]}, '{text}', {correct}),"

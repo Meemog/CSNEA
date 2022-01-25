@@ -1,4 +1,5 @@
 import React from 'react';
+//import './createQuestions.css'
 //TODO: add SweetAlert
 
 class QuestionForm extends React.Component {
@@ -214,7 +215,7 @@ class QuestionForm extends React.Component {
 
   render(){
     return (
-      <div>
+      <div className="createQuestion">
         <h1>Create Question</h1>
         <span className="col-sm-4">
           <p>Enter the Question:</p>

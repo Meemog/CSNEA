@@ -1,0 +1,9 @@
+      #root > div > div > span:last-child {
+          flex-basis: 100%;
+          background-color: transparent;
+      }
+      #root > div > div > span:last-child input[type=button] {
+          width: 100%;
+          background-color: deepskyblue;
+          border: 0;
+      }
