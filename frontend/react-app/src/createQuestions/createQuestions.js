@@ -196,6 +196,7 @@ class QuestionForm extends React.Component {
           .then(status => {
             if (status === 200){
               alert("Question succesfully submitted");
+              window.location.reload(false);
             }else{
               alert(`There was an error in submission\nResponse Code: ${status}`);
             }
@@ -215,7 +216,7 @@ class QuestionForm extends React.Component {
 
   render(){
     return (
-      <div className="createQuestion">
+      <div className="form">
         <h1>Create Question</h1>
         <span className="col-sm-4">
           <p>Enter the Question:</p>

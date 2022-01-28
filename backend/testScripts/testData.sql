@@ -6,7 +6,8 @@ VALUES
 INSERT INTO Topic
 VALUES
     (0, "Algebra"),
-    (1, "Ratios");
+    (1, "Ratios"),
+    (2, "Arithmetic");
 
 INSERT INTO Question
 VALUES

@@ -236,4 +236,23 @@ def create_app(test_config=None): #function that creates the app
             except:
                 return ('error', 500)
 
+         # 'quizParams': {
+         #   'topics': topics,
+         #   'numQuestions': numQuestions,
+         #   'difficulty': difficulty
+
+    @app.route('/createQuiz', methods=['POST'])
+    def createQuiz():
+        params = json.loads(request.data.decode())
+        print(params)
+
+        response = 'OK'
+        responseCode = 200
+
+        response = jsonify(response)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+
+        return (response, responseCode)
+
+
     return app

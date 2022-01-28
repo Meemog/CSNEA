@@ -62,11 +62,11 @@
           align-items: center;
               justify-content: center;
       }
-      #root > div > div.createQuestion> span:last-child {
+      #root > div > div.form> span:last-child {
           flex-basis: 100%;
           background-color: transparent;
       }
-      #root > div > div.createQuestion > span:last-child input[type=button] {
+      #root > div > div.form> span:last-child input[type=button] {
           width: 50%;
           background-color: deepskyblue;
           border: 0;
@@ -77,6 +77,20 @@
           border-radius: 2ch;
           font-weight: 600;
           padding: 10px 20px;
+      }
+      button {
+          background-color: #3a3a3a;
+          color: #fff;
+          border-radius: 2ch;
+          font-weight: 600;
+          padding: 10px 20px;
+      }
+      button > a {
+          color: #fff;
+      }
+
+      button > a:hover {
+          color: #fff;
       }
       input[type=text] {
           padding: 10px;

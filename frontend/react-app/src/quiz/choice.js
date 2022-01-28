@@ -1,4 +1,5 @@
 import React from 'react'
+import { Link } from 'react-router-dom'
 
 class CreateOrPlay extends React.Component {
   constructor(props) {
@@ -10,8 +11,8 @@ class CreateOrPlay extends React.Component {
           <p>Choose wether you would like to create a quiz, or join one</p>
         </span>
         <span>
-          <input type="button" href="/playQuiz" value="Create Quiz" />
-          <input type="button" href="/" value="Join Quiz" />
+          <button><Link to="/createQuiz">Create Quiz</Link></button>
+          <button><Link to="/">Join Quiz</Link></button>
         </span>
       </div>
     );

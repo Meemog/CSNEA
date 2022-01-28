@@ -17,7 +17,7 @@ ReactDOM.render((
         <Route path='/' element={<HomePage />} />
         <Route path='/questionPage' element={<QuestionPage />} />
         <Route path='/createQuestion' element={<QuestionForm />} />
-        <Route path='/playQuiz' element={<CreateQuizPage />} />
+        <Route path='/createQuiz' element={<CreateQuizPage />} />
         <Route path='/choice' element={<CreateOrPlay />} />
 
       </Routes>
