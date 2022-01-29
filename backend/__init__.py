@@ -6,6 +6,7 @@ from flask import(
         )
 
 from markupsafe import escape
+import random
 
 def create_app(test_config=None): #function that creates the app
     app = Flask(__name__, instance_relative_config=True)
@@ -236,18 +237,83 @@ def create_app(test_config=None): #function that creates the app
             except:
                 return ('error', 500)
 
+
+         # structure of json bring recieved
+
          # 'quizParams': {
-         #   'topics': topics,
-         #   'numQuestions': numQuestions,
-         #   'difficulty': difficulty
+         #   'topics': array of intagers for topics,
+         #   'numQuestions': integer for the number of questions,
+         #   'difficulty': string for the difficulty
 
     @app.route('/createQuiz', methods=['POST'])
     def createQuiz():
         params = json.loads(request.data.decode())
-        print(params)
-
         response = 'OK'
         responseCode = 200
+
+        # create a quiz entry with:
+        #   the ID of the user that generated it
+        #   the number of questions in each round
+        #   and the difficulty
+
+        try:
+            quizParams = params['quizParams']
+
+            author = 0 #PLACEHOLDER
+            numQuestions = quizParams['numQuestions']
+            difficulty = quizParams['difficulty']
+
+        except:
+            responseCode = 422
+            response = "Couldn't unpack data"
+
+        dificulties = ['Easy', 'Medium', 'Hard']
+        if (difficulty not in dificulties):
+            responseCode = 400
+            response = "difficulty not valid"
+
+        if responseCode == 200:
+            try:
+                database = db.get_db()
+                query = f"INSERT INTO Quiz(Generator, NumQuestions, Difficulty) VALUES ({author}, {numQuestions}, '{difficulty}');"
+
+                test = database.execute(query).fetchall()
+                print(f"Executed command: {query}")
+                print(test)
+                database.commit()
+            except Exception as e:
+                print(e)
+                responseCode = 500
+                response = "Server error"
+
+
+        #create a round for each topic
+        if responseCode == 200:
+            topics = quizParams['topics']
+            allQuestions = []
+            for topic in topics:
+                query = f"SELECT * FROM Question WHERE TopicID={topic};"
+                questions = database.execute(query).fetchall()
+                allQuestions.append(questions)
+
+            print("Submitting the following questions to the database:")
+            idQuery = "SELECT MAX(ID) FROM Question;"
+            questionId = database.execute(idQuery).fetchone()
+            print(questionId[0])
+            for i in range(len(allQuestions)): #for each round
+                #create round
+                print(allQuestions[i][3])
+                #roundQuery = f"INSERT INTO Round(TopicID, QuizID, StartDT) VALUES (
+
+                #add questions to round
+                sample = random.sample(range(len(allQuestions[0])), int(numQuestions))
+                print(f"  Round {i}:")
+                for item in sample:
+                    print("    " + allQuestions[i][item][1])
+
+
+        # assign each round to a quiz
+
 
         response = jsonify(response)
         response.headers.add('Access-Control-Allow-Origin', '*')

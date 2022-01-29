@@ -198,9 +198,9 @@ class CreateQuizPage extends React.Component {
           <p>Difficulty:</p>
           <select name="difficulty" id="difficulty">
             <option value="-1">Select Difficulty</option>
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
+            <option value="Easy">Easy</option>
+            <option value="Medium">Medium</option>
+            <option value="Hard">Hard</option>
           </select>
         </span>
         <span>

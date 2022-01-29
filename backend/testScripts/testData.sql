@@ -33,7 +33,7 @@ VALUES
 
 INSERT INTO Quiz
 VALUES
-    (0, 0, 3, 1);
+    (0, 0, 3, 'Medium');
 
 
 INSERT INTO Round
