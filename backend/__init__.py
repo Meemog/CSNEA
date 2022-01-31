@@ -294,25 +294,41 @@ def create_app(test_config=None): #function that creates the app
             for topic in topics:
                 query = f"SELECT * FROM Question WHERE TopicID={topic};"
                 questions = database.execute(query).fetchall()
-                allQuestions.append(questions)
+                allQuestions.append([questions, topic])
 
-            print("Submitting the following questions to the database:")
-            idQuery = "SELECT MAX(ID) FROM Question;"
-            questionId = database.execute(idQuery).fetchone()
-            print(questionId[0])
-            for i in range(len(allQuestions)): #for each round
+            idQuery = "SELECT MAX(ID) FROM Quiz;"
+            quizCursor = database.execute(idQuery).fetchone()
+            quizId = quizCursor[0]
+            print(f"Quiz {quizId}:")
+
+            for i in range(len(allQuestions)): #for each potential round
+                print(f"Processing round {i+1}:")
+
                 #create round
-                print(allQuestions[i][3])
-                #roundQuery = f"INSERT INTO Round(TopicID, QuizID, StartDT) VALUES (
+                roundQuery = f"INSERT INTO Round(TopicID, QuizID, StartDT) VALUES ({allQuestions[i][1]}, {quizId}, null);"
+                database.execute(roundQuery)
+                database.commit()
+                print(f"  Executed command: {roundQuery}")
+
+                roundIdQuery = "SELECT MAX(ID) FROM Round;"
+                roundId = database.execute(roundIdQuery).fetchone()[0]
+                print(f"  Executed command: {roundIdQuery}")
+                print(f"  Round ID: {roundId}")
 
                 #add questions to round
-                sample = random.sample(range(len(allQuestions[0])), int(numQuestions))
-                print(f"  Round {i}:")
+                sample = random.sample(range(len(allQuestions[0][0])), int(numQuestions))
+                questions = []
                 for item in sample:
-                    print("    " + allQuestions[i][item][1])
+                    questions.append(allQuestions[i][0][item][0])
+                print(f"  Question IDs: {questions}")
 
+                for item in questions:
+                    query = f"INSERT INTO QuestionInRound VALUES ({item}, {roundId});"
+                    database.execute(query)
+                    database.commit()
+                    print(f"Executed command: {query}")
 
-        # assign each round to a quiz
+                # assign each round to a quiz
 
 
         response = jsonify(response)
