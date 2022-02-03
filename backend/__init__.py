@@ -289,49 +289,80 @@ def create_app(test_config=None): #function that creates the app
 
         #create a round for each topic
         if responseCode == 200:
-            topics = quizParams['topics']
-            allQuestions = []
-            for topic in topics:
-                query = f"SELECT * FROM Question WHERE TopicID={topic};"
-                questions = database.execute(query).fetchall()
-                allQuestions.append([questions, topic])
+            try:
+                topics = quizParams['topics']
+                allQuestions = []
+                for topic in topics:
+                    query = f"SELECT * FROM Question WHERE TopicID={topic};"
+                    questions = database.execute(query).fetchall()
+                    allQuestions.append([questions, topic])
 
-            idQuery = "SELECT MAX(ID) FROM Quiz;"
-            quizCursor = database.execute(idQuery).fetchone()
-            quizId = quizCursor[0]
-            print(f"Quiz {quizId}:")
+                idQuery = "SELECT MAX(ID) FROM Quiz;"
+                quizCursor = database.execute(idQuery).fetchone()
+                quizId = quizCursor[0]
+                print(f"Quiz {quizId}:")
 
-            for i in range(len(allQuestions)): #for each potential round
-                print(f"Processing round {i+1}:")
+                for i in range(len(allQuestions)): #for each potential round
+                    print(f"Processing round {i+1}:")
 
-                #create round
-                roundQuery = f"INSERT INTO Round(TopicID, QuizID, StartDT) VALUES ({allQuestions[i][1]}, {quizId}, null);"
-                database.execute(roundQuery)
-                database.commit()
-                print(f"  Executed command: {roundQuery}")
-
-                roundIdQuery = "SELECT MAX(ID) FROM Round;"
-                roundId = database.execute(roundIdQuery).fetchone()[0]
-                print(f"  Executed command: {roundIdQuery}")
-                print(f"  Round ID: {roundId}")
-
-                #add questions to round
-                sample = random.sample(range(len(allQuestions[0][0])), int(numQuestions))
-                questions = []
-                for item in sample:
-                    questions.append(allQuestions[i][0][item][0])
-                print(f"  Question IDs: {questions}")
-
-                for item in questions:
-                    query = f"INSERT INTO QuestionInRound VALUES ({item}, {roundId});"
-                    database.execute(query)
+                    #create round
+                    roundQuery = f"INSERT INTO Round(TopicID, QuizID, StartDT) VALUES ({allQuestions[i][1]}, {quizId}, null);"
+                    database.execute(roundQuery)
                     database.commit()
-                    print(f"Executed command: {query}")
+                    print(f"  Executed command: {roundQuery}")
 
-                # assign each round to a quiz
+                    roundIdQuery = "SELECT MAX(ID) FROM Round;"
+                    roundId = database.execute(roundIdQuery).fetchone()[0]
+                    print(f"  Executed command: {roundIdQuery}")
+                    print(f"  Round ID: {roundId}")
+
+                    #add questions to round
+                    sample = random.sample(range(len(allQuestions[0][0])), int(numQuestions))
+                    questions = []
+                    for item in sample:
+                        questions.append(allQuestions[i][0][item][0])
+
+                    print(f"  Question IDs: {questions}")
+
+                    for item in questions:
+                        query = f"INSERT INTO QuestionInRound VALUES ({item}, {roundId});"
+                        database.execute(query)
+                        database.commit()
+                        print(f"Executed command: {query}")
+
+                response = {
+                        'code': 200,
+                        'message': 'OK',
+                        'quizId': quizId
+                        }
+
+            except:
+                response = "Server error"
+                responseCode = 500
 
 
         response = jsonify(response)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+
+        return (response, responseCode)
+
+    @app.route('/round/<quizID>', methods=['GET'])
+    def getQuestions(quizID):
+        responseCode = 200
+        response = {'response': 'OK'}
+
+        rounds = []
+        roundQuery = f"SELECT ID FROM round WHERE QuizID={quizID}"
+
+        database = db.get_db()
+
+        roundCursor = database.execute(roundQuery).fetchall()
+
+        for item in roundCursor:
+            rounds.append(item[0])
+
+        roundDict = {'rounds': rounds}
+        response = jsonify(roundDict)
         response.headers.add('Access-Control-Allow-Origin', '*')
 
         return (response, responseCode)

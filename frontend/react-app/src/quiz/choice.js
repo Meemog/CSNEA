@@ -8,11 +8,11 @@ class CreateOrPlay extends React.Component {
       <div className="chooseMode">
         <h1>Play</h1>
         <span>
-          <p>Choose wether you would like to create a quiz, or join one</p>
+          <p>Choose whether you would like to create a quiz, or join one</p>
         </span>
         <span>
           <button><Link to="/createQuiz">Create Quiz</Link></button>
-          <button><Link to="/">Join Quiz</Link></button>
+          <button><Link to="/joinQuiz">Join Quiz</Link></button>
         </span>
       </div>
     );

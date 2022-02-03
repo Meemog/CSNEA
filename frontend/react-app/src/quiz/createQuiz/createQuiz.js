@@ -167,13 +167,13 @@ class CreateQuizPage extends React.Component {
     const quizPromise = fetch(quizRequest);
 
     quizPromise
-      .then((response) => response.status)
-      .then(status => {
-        if (status === 200){
-          alert("Quiz parameters succesfully submitted");
+      .then(response => {response.json()})
+      .then(response => {
+        if (response['code'] === 200){
+          alert(`Quiz parameters succesfully submitted\n${response}`);
           window.location.reload(false);
         }else{
-          alert(`There was an error in submission\nResponse Code: ${status}`);
+          alert(`There was an error in submission\nResponse Code: ${response.status}`);
         }
       })
     return
