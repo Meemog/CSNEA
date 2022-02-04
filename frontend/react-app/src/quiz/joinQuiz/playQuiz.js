@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom'
 
 class QuestionForm extends React.Component {
   constructor(props) {
@@ -84,20 +85,28 @@ class QuestionForm extends React.Component {
 class QuestionPage extends React.Component {
   constructor(props) {
     super(props);
-    this.content = (
-        <div>
-          <h1>Quiz</h1>
-          <span>
-            <p>Enter RoundID</p>
-            <input type="text" id='roundid' />
-          </span>
-          <span>
-            <input type="button" value="Get Questions" onClick={() => {this.renderForm(document.getElementById('roundid').value)}} />
-          </span>
-        </div>
-      )
+    this.content = <div />
+    this.rounds = this.props.rounds
+    this.roundNum = 0
+    this.renderForm(this.rounds[this.roundNum])
   }
+
   renderForm(id) {
+    this.roundNum += 1
+    let button = <div />
+    if (this.roundNum < this.rounds.length){
+      button = (
+        <span>
+          <input type="Button" value="Next Round" onClick={() => {this.renderForm(this.rounds[this.roundNum])}} />
+        </span>
+      )
+    } else{
+      button = (
+        <span>
+          <button><Link to="/">Done</Link></button>
+        </span>
+      )
+    }
     let myHeaders = new Headers();
     let myInit = { method: 'GET',
       headers: myHeaders,
@@ -112,10 +121,15 @@ class QuestionPage extends React.Component {
     fetchPromise
       .then((response) => response.json())
       .then(data => {
+        this.content = <div />
+        this.setState( { state: this.state } )
         this.content = (
           <div>
-            <h1>Quiz</h1>
-            <QuestionForm data={data} roundId={id} />
+            <h1>Round {this.roundNum}</h1>
+            <span>
+              <QuestionForm data={data} roundId={id} />
+            </span>
+            {button}
           </div>
         )
         this.setState( { state: this.state } )

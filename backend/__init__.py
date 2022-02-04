@@ -308,7 +308,6 @@ def create_app(test_config=None): #function that creates the app
                     #create round
                     roundQuery = f"INSERT INTO Round(TopicID, QuizID, StartDT) VALUES ({allQuestions[i][1]}, {quizId}, null);"
                     database.execute(roundQuery)
-                    database.commit()
                     print(f"  Executed command: {roundQuery}")
 
                     roundIdQuery = "SELECT MAX(ID) FROM Round;"
@@ -327,9 +326,10 @@ def create_app(test_config=None): #function that creates the app
                     for item in questions:
                         query = f"INSERT INTO QuestionInRound VALUES ({item}, {roundId});"
                         database.execute(query)
-                        database.commit()
                         print(f"Executed command: {query}")
 
+                database.commit()
+                print("Commited")
                 response = {
                         'code': 200,
                         'message': 'OK',

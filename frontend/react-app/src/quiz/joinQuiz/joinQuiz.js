@@ -1,22 +1,5 @@
 import React from 'react'
-
-class Questions extends React.Component {
-  constructor(props) {
-    super(props)
-
-    this.roundId = this.props.roundId;
-  }
-
-  render(){
-    return(
-      <div>
-        <p>Round ID: </p>
-        {this.roundId}
-      </div>
-    )
-  }
-
-}
+import { QuestionPage } from './playQuiz.js'
 
 class JoinPage extends React.Component {
   constructor(props) {
@@ -25,7 +8,7 @@ class JoinPage extends React.Component {
     this.state = {
       data: false
     }
-    this.content = (
+    this.baseContent = (
       <div>
         <h1>Join Quiz</h1>
         <span>
@@ -35,19 +18,19 @@ class JoinPage extends React.Component {
         </span>
       </div>
     )
+    this.content = this.baseContent
   }
 
   submit(){
     let quizId = document.getElementById("quizid").value;
     let actions = []
 
-    if (!/^([1-9][0-9]*)$/.test(quizId)){
+    if (!/^([1-9][0-9]*)$/.test(quizId) && quizId !== "0"){
       actions.push("Enter a valid number for the id")
     }
 
     if (actions.length === 0){
-      alert('Success');
-      this.getRounds(0)
+      this.getRounds(quizId)
     }else{
       let actionStr = '';
       for (let i=0; i<actions.length; i++){
@@ -74,12 +57,17 @@ class JoinPage extends React.Component {
       .then((data ) => {
         let rounds = data['rounds'];
         this.rounds = rounds;
+        console.log(this.rounds)
         this.setState( {data: true} )
       })
   }
 
   render(){
-    return (this.content)
+    if (!this.state.data){
+      return (this.content)
+    } else{
+      return (<QuestionPage rounds={this.rounds}/>)
+    }
   }
 }
 
