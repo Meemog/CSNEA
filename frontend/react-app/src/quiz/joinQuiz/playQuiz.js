@@ -1,15 +1,25 @@
 import React from 'react';
 import { Link } from 'react-router-dom'
 
-class QuestionForm extends React.Component {
+class QuestionPage extends React.Component {
   constructor(props) {
     super(props);
+    this.content = <div />
+    this.rounds = this.props.rounds
+    this.roundNum = 0
+    this.renderForm(this.rounds[this.roundNum])
+    this.hasSubmitted = false;
+  }
+
+  initialise(data, id) {
     this.generateQuestion = this.generateQuestion.bind(this);
+    this.data = data;
+    this.id = id;
     this.generateForm = this.generateForm.bind(this);
     this.getAnswers = this.getAnswers.bind(this);
     this.questions = []
     this.answers = {'answers': {}}
-    this.content = (
+    this.questionContent = (
       <div>
         {this.generateForm()}
       </div>
@@ -19,7 +29,7 @@ class QuestionForm extends React.Component {
   generateQuestion(id, index) {
     const question =
       <label key={index}>
-        {this.props.data[id]["Text"]}
+        {this.data[id]["Text"]}
         <br />
         <input type="text" id={("textInput" + index.toString())}/>
         <br />
@@ -29,8 +39,8 @@ class QuestionForm extends React.Component {
   generateForm() {
     let i = 0;
     let toRender = [];
-    for (let key in this.props.data){
-      this.questions.push([this.generateQuestion([key], i), this.props.data[key]['ID']]);
+    for (let key in this.data){
+      this.questions.push([this.generateQuestion([key], i), this.data[key]['ID']]);
       toRender.push(this.generateQuestion([key], i))
       i += 1;
     }
@@ -57,12 +67,13 @@ class QuestionForm extends React.Component {
       body: JSON.stringify(ansDict)
     }
 
-    let ansRequest = new Request(("http://127.0.0.1:5000/checkAnswers/" + this.props.roundId), ansInit);
+    let ansRequest = new Request(("http://127.0.0.1:5000/checkAnswers/" + this.id), ansInit);
     const ansPromise = fetch(ansRequest);
 
     ansPromise
       .then((response) => response.json())
       .then((data) => {
+        console.log('test');
         const elements = []
         let index = 0
         for (const [key, value] of Object.entries(data)) {
@@ -70,43 +81,39 @@ class QuestionForm extends React.Component {
           elements.push(<p key={index}>{toAdd}</p>)
           index += 1;
         }
-        this.content = <div>{elements}</div>
+        this.questionContent = <div>{elements}</div>
+        this.content = [
+            <h1>Round {this.roundNum}</h1>,
+            <span>{this.questionContent}</span>
+        ];
+        this.setButton();
         this.setState( { state: this.state } )
       });
-
-
   }
 
-  render() {
-    return this.content
-  }
-}
-
-class QuestionPage extends React.Component {
-  constructor(props) {
-    super(props);
-    this.content = <div />
-    this.rounds = this.props.rounds
-    this.roundNum = 0
+  nextRoundBtn(){
     this.renderForm(this.rounds[this.roundNum])
   }
 
-  renderForm(id) {
-    this.roundNum += 1
-    let button = <div />
+  setButton(){
     if (this.roundNum < this.rounds.length){
-      button = (
+      this.button = (
         <span>
-          <input type="Button" value="Next Round" onClick={() => {this.renderForm(this.rounds[this.roundNum])}} />
+          <input type="Button" value="Next Round" onClick={() => {this.nextRoundBtn()}} />
         </span>
       )
     } else{
-      button = (
+      this.button = (
         <span>
           <button><Link to="/">Done</Link></button>
         </span>
       )
     }
+  }
+
+  renderForm(id) {
+    this.roundNum += 1
+    this.button = <div />
     let myHeaders = new Headers();
     let myInit = { method: 'GET',
       headers: myHeaders,
@@ -123,21 +130,25 @@ class QuestionPage extends React.Component {
       .then(data => {
         this.content = <div />
         this.setState( { state: this.state } )
-        this.content = (
-          <div>
-            <h1>Round {this.roundNum}</h1>
+        this.initialise(data, id)
+        console.log(this.questionContent)
+        this.content = [
+            <h1>Round {this.roundNum}</h1>,
             <span>
-              <QuestionForm data={data} roundId={id} />
+              {this.questionContent}
             </span>
-            {button}
-          </div>
-        )
+        ]
         this.setState( { state: this.state } )
       })
   }
 
   render() {
-    return this.content;
+    return (
+      <div>
+        {this.content}
+        {this.button}
+      </div>
+    )
   }
 }
 
