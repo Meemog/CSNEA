@@ -367,5 +367,39 @@ def create_app(test_config=None): #function that creates the app
 
         return (response, responseCode)
 
+    @app.route('/register', methods=['POST']) 
+    def register():
+
+        params = json.loads(request.data.decode())
+
+        database = db.get_db()
+
+        #check if username exists
+
+        usernameQuery = f"SELECT EXISTS(SELECT 1 FROM User WHERE Username='{params['username']}')"
+        testUserId = database.execute(usernameQuery).fetchone()
+
+        if (testUserId[0]):
+            print('Username Taken')
+            response = jsonify({'response': 'Username already in use'})
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return (response, 409)
+
+        registerCommand = f"INSERT INTO User (Username, Name, Password, Email) VALUES('{params['username']}', '{params['name']}', '{params['password']}', '{params['email']}')"
+
+        database.execute(registerCommand)
+        print(f"Executed command: {registerCommand}")
+        database.commit()
+
+        responseCode = 200
+        response = {'response': 'OK'}
+
+        response = jsonify(response)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+
+        return(response, responseCode)
+
+
+
 
     return app

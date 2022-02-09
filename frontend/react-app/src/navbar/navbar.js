@@ -16,6 +16,9 @@ class NavBar extends React.Component {
           <span>
             <Link to="/createQuestion">Create Question</Link>
           </span>
+          <span>
+            <Link to="/login">Login</Link>
+          </span>
         </ul>
       </nav>
     );
