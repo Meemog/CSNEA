@@ -78,6 +78,16 @@ class RegisterPage extends React.Component{
 
     let registerRequest = new Request(("http://127.0.0.1:5000/register"), registerInit);
     const registerPromise = fetch(registerRequest);
+
+    registerPromise
+      .then((response) => {
+        if (response.status === 200){
+          console.log("registered")
+        } else{
+          response.json()
+            .then((dict) => {alert(dict['response'])})
+        }
+      })
   }
 
 
@@ -100,7 +110,7 @@ class RegisterPage extends React.Component{
           <Link to='/login'>Login</Link>
         </span>
         <span>
-          <input type="Button" value="Submit" onClick={() => {this.submit()}}/>
+          <input type="Button" defaultValue="Register" onClick={() => {this.submit()}}/>
         </span>
       </div>
     )

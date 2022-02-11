@@ -1,5 +1,8 @@
 import os
 import json
+import random
+import string
+import time
 
 from flask import(
         Flask, jsonify, request, abort, json
@@ -367,7 +370,7 @@ def create_app(test_config=None): #function that creates the app
 
         return (response, responseCode)
 
-    @app.route('/register', methods=['POST']) 
+    @app.route('/register', methods=['POST'])
     def register():
 
         params = json.loads(request.data.decode())
@@ -399,7 +402,75 @@ def create_app(test_config=None): #function that creates the app
 
         return(response, responseCode)
 
+    @app.route('/login', methods=['POST'])
+    def login():
+        params = json.loads(request.data.decode())
+        print(params)
+
+        #get user id from username
+        idQuery = f"SELECT ID FROM User WHERE Username='{params['username']}'"
+
+        try:
+            database = db.get_db()
+            id = database.execute(idQuery).fetchone()[0]
+
+        except:
+            responseCode = 422
+            response = {'response': 'username not found'}
+            response = jsonify(response)
+            response.headers.add('Access-Control-Allow-Origin', '*')
+
+            return(response, responseCode)
+
+        print(id)
+
+        #check authentication
+        passQuery = f"SELECT Password FROM User WHERE ID={id}"
+
+        try:
+            password = database.execute(passQuery).fetchone()[0]
+        except:
+            responseCode = 500
+            response = {'response': 'Error checking password'}
+            response = jsonify(response)
+            response.headers.add('Access-Control-Allow-Origin', '*')
+
+            return(response, responseCode)
+
+        if params['password'] != password:
+            responseCode = 422
+            response = {'response': 'Incorrect Username or Password'}
+            response = jsonify(response)
+            response.headers.add('Access-Control-Allow-Origin', '*')
+
+            return(response, responseCode)
+
+        #Delete old session if user is already logged in
+        sessionQuery = f"SELECT EXISTS(SELECT 1 FROM userSession WHERE UserID = {id})"
+        isLoggedIn = database.execute(sessionQuery).fetchone()[0]
+
+        if isLoggedIn:
+            delCommand = f"DELETE FROM userSession WHERE UserID={id}"
+            database.execute(delCommand)
+            database.commit()
+
+        #make session
+        token = ''.join(random.choices(string.ascii_letters + string.digits, k=64))
+        print(token)
+
+        sessionCommand = f"INSERT INTO UserSession(Token, UserID, LastUsed) VALUES ('{token}', {id}, {time.time()});"
+
+        database.execute(sessionCommand)
+        print(f"Executed command: {sessionCommand}")
+        database.commit()
 
 
+        responseCode = 200
+        response = {'response': 'OK', 'sessionToken': token}
+
+        response = jsonify(response)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+
+        return(response, responseCode)
 
     return app

@@ -1,7 +1,7 @@
 INSERT INTO User
 VALUES
-    (0, "TEST_USER_0", "John Doe", "PASS123", "john@example.com"),
-    (1, "TEST_USER_1", "Joanne Doe", "qwertyuiop", "joanne@example.com");
+    (0, "TEST_USER_0", "John Doe", "0960da77250b75141db9d2f43802956d628e25d719b5aabe74f76e1d6cadd387", "john@example.com"),
+    (1, "TEST_USER_1", "Joanne Doe", "9a900403ac313ba27a1bc81f0932652b8020dac92c234d98fa0b06bf0040ecfd", "joanne@example.com");
 
 INSERT INTO Topic
 VALUES
