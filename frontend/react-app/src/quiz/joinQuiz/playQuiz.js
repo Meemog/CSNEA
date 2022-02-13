@@ -51,6 +51,8 @@ class QuestionPage extends React.Component {
 
     return x
   }
+
+
   getAnswers() {
     for (let j=0; j < this.questions.length; j++){
       this.answers['answers'][this.questions[j][1]] = (document.getElementById('textInput' + j.toString()).value);

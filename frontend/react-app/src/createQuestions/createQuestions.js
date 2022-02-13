@@ -174,14 +174,15 @@ class QuestionForm extends React.Component {
           'answers': ansDict,
           'topic': topic,
           'difficulty': difficulty,
-          'multipleChoice': multipleChoice
+          'multipleChoice': multipleChoice,
+          'token': this.getCookie("token")
         }
 
         //Submiting to the API
 
         let questionInit = { method: 'POST',
           headers: {
-            'Content-Type': 'text/plain'
+            'Content-Type': 'text/plain',
             },
           cache: 'default',
           mode: 'cors',
@@ -192,13 +193,16 @@ class QuestionForm extends React.Component {
         const questionPromise = fetch(questionRequest);
 
         questionPromise
-          .then((response) => response.status)
-          .then(status => {
-            if (status === 200){
+          .then( response => {
+            if (response.status === 200){
               alert("Question succesfully submitted");
               window.location.reload(false);
             }else{
-              alert(`There was an error in submission\nResponse Code: ${status}`);
+              response.json()
+                .then((json => {
+                  alert(`There was an error in submission\nResponse: ${json['response']}`);
+                })
+                )
             }
           })
       }
@@ -212,6 +216,12 @@ class QuestionForm extends React.Component {
       alert(toAlert);
     }
 
+  }
+
+  getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(` ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
   }
 
   render(){

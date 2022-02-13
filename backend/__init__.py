@@ -60,6 +60,7 @@ def create_app(test_config=None): #function that creates the app
                 count += 1
             return jsonify(userDict)
 
+    #Actual API starts here
 
     @app.route('/questions/<roundid>', methods=['GET', 'POST'])
     def quizQuestions(roundid):
@@ -73,7 +74,7 @@ def create_app(test_config=None): #function that creates the app
             command = "SELECT Question.ID, Question.QuestionText, Question.MultipleChoice, Question.AuthorID FROM QuestionInRound INNER JOIN Question ON Question.ID=QuestionInRound.QuestionID WHERE RoundID=" + roundid + ";"
             questions = database.execute(command).fetchall()
             print(f"Executed command: {command}")
-            questionDict = {}
+            questionDict = {'authorised': 1}
             count = 0
 
             for row in questions:
@@ -111,7 +112,9 @@ def create_app(test_config=None): #function that creates the app
 
                 questionDict.update({count:jsonToAdd})
                 count += 1
-            response = jsonify(questionDict)
+            response = questionDict
+
+            response = jsonify(response)
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response
 
@@ -121,22 +124,39 @@ def create_app(test_config=None): #function that creates the app
             #get data from request
             question = json.loads(request.data.decode())
 
-            #extract data
             try:
-                questionText = question['text']
-                answers = question['answers']
-                topic = question['topic']
-                difficulty = question['difficulty']
-                multipleChoice = question['multipleChoice']
+                token = question['token']
             except:
-                responseCode = 422
-                responseText = 'json in wrong format'
+                token = ''
 
             database = db.get_db()
 
+            #verify identity
+            sessionQuery = f"SELECT UserID FROM UserSession WHERE Token='{token}';"
+            user = database.execute(sessionQuery).fetchone()
+
+            if user == None:
+                print("User not authorized")
+                response = {'response': 'Not Logged in'}
+                responseCode = 401
+
+            if responseCode == 200:
+                print(f"User authorised: {user[0]}")
+                #extract data
+                try:
+                    questionText = question['text']
+                    answers = question['answers']
+                    topic = question['topic']
+                    difficulty = question['difficulty']
+                    multipleChoice = question['multipleChoice']
+                except:
+                    responseCode = 422
+                    response = {'response': 'json in wrong format'}
+
+
             #add data to db
             if responseCode == 200:
-                values = f"('{questionText}', 0, {topic}, {multipleChoice}, '{difficulty}')"
+                values = f"('{questionText}', {user}, {topic}, {multipleChoice}, '{difficulty}')"
                 query = f"INSERT INTO Question(QuestionText, AuthorID, TopicID, MultipleChoice, Difficulty) VALUES {values};"
                 try:
                     database.execute(query)
@@ -183,7 +203,6 @@ def create_app(test_config=None): #function that creates the app
                 abort(404)
             database = db.get_db()
 
-
             userAnswers = json.loads(request.data.decode())
             print(userAnswers)
 
@@ -211,7 +230,9 @@ def create_app(test_config=None): #function that creates the app
                     response.headers.add('Access-Control-Allow-Origin', '*')
                     return(response, 422)
 
-            response = jsonify(toAdd)
+            response = toAdd
+
+            response = jsonify(response)
             response.headers.add('Access-Control-Allow-Origin', '*')
             return (response, 200) #returns in the form {questionID: {isCorrect, userAnswer, correctAnswer}}
 
@@ -349,23 +370,45 @@ def create_app(test_config=None): #function that creates the app
 
         return (response, responseCode)
 
-    @app.route('/round/<quizID>', methods=['GET'])
+    @app.route('/round/<quizID>', methods=['GET', 'POST'])
     def getQuestions(quizID):
         responseCode = 200
         response = {'response': 'OK'}
+        params = json.loads(request.data.decode())
 
-        rounds = []
-        roundQuery = f"SELECT ID FROM round WHERE QuizID={quizID}"
+        try:
+            token = params['token']
+        except:
+            token = ''
 
         database = db.get_db()
 
-        roundCursor = database.execute(roundQuery).fetchall()
+        #verify identity
+        sessionQuery = f"SELECT UserID FROM UserSession WHERE Token='{token}';"
+        user = database.execute(sessionQuery).fetchone()
 
-        for item in roundCursor:
-            rounds.append(item[0])
+        if user == None:
+            print("User not authorized")
+            response = {'authorised': 0}
+            responseCode = 401
 
-        roundDict = {'rounds': rounds}
-        response = jsonify(roundDict)
+        if responseCode == 200:
+            print(f"User authorised: {user[0]}")
+
+            rounds = []
+            roundQuery = f"SELECT ID FROM round WHERE QuizID={quizID}"
+
+            database = db.get_db()
+
+            roundCursor = database.execute(roundQuery).fetchall()
+
+            for item in roundCursor:
+                rounds.append(item[0])
+
+            roundDict = {'rounds': rounds}
+            #roundDict.update({'authorised': 1}
+            response = roundDict
+        response = jsonify(response)
         response.headers.add('Access-Control-Allow-Origin', '*')
 
         return (response, responseCode)

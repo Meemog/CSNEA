@@ -40,14 +40,22 @@ class JoinPage extends React.Component {
     }
   }
 
+  getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(` ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
+  }
+
   getRounds(quizID){
-    let quizInit = { method: 'GET',
+    let quizInit = { method: 'POST',
       headers: {
         'Content-Type': 'text/plain'
         },
       cache: 'default',
       mode: 'cors',
+      body: JSON.stringify({'token': this.getCookie('token')})
     }
+
 
     let quizRequest = new Request((`http://127.0.0.1:5000/round/${quizID}`), quizInit);
     const quizPromise = fetch(quizRequest);
@@ -55,10 +63,14 @@ class JoinPage extends React.Component {
     quizPromise
       .then((response) => response.json())
       .then((data ) => {
+        if (data['authorised']){
         let rounds = data['rounds'];
         this.rounds = rounds;
         console.log(this.rounds)
         this.setState( {data: true} )
+        } else{
+          alert('Please Log In')
+        }
       })
   }
 
