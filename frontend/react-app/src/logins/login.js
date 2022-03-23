@@ -60,7 +60,7 @@ class LoginPage extends React.Component{
     loginPromise
       .then((response) => {
         if (response.status === 200){
-          console.log("Logged in")
+          alert("logged in")
           response.json()
             .then((dict) => {
               document.cookie = `token=${dict['sessionToken']};SameSite=Strict;`;

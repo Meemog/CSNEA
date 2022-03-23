@@ -82,7 +82,7 @@ class RegisterPage extends React.Component{
     registerPromise
       .then((response) => {
         if (response.status === 200){
-          console.log("registered")
+          alert("registered")
         } else{
           response.json()
             .then((dict) => {alert(dict['response'])})

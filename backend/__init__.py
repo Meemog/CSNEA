@@ -137,11 +137,12 @@ def create_app(test_config=None): #function that creates the app
 
             if user == None:
                 print("User not authorized")
-                response = {'response': 'Not Logged in'}
+                responseText = "Not logged in"
                 responseCode = 401
 
+
             if responseCode == 200:
-                print(f"User authorised: {user[0]}")
+                print(f"User authorised: {user}")
                 #extract data
                 try:
                     questionText = question['text']
@@ -151,13 +152,15 @@ def create_app(test_config=None): #function that creates the app
                     multipleChoice = question['multipleChoice']
                 except:
                     responseCode = 422
-                    response = {'response': 'json in wrong format'}
+                    responseText = "json in wrong format"
 
 
             #add data to db
             if responseCode == 200:
+                user = user[0]
                 values = f"('{questionText}', {user}, {topic}, {multipleChoice}, '{difficulty}')"
                 query = f"INSERT INTO Question(QuestionText, AuthorID, TopicID, MultipleChoice, Difficulty) VALUES {values};"
+                print(f"Executed command: {query}")
                 try:
                     database.execute(query)
                     database.commit()
@@ -188,7 +191,7 @@ def create_app(test_config=None): #function that creates the app
 
 
             #submit response
-            response = jsonify(responseText)
+            response = jsonify({'response': responseText})
             response.headers.add('Access-Control-Allow-Origin', '*')
 
             return(response, responseCode)
