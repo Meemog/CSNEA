@@ -39,10 +39,13 @@ class QuestionPage extends React.Component {
   generateForm() {
     let i = 0;
     let toRender = [];
+    console.log(this.data);
     for (let key in this.data){
-      this.questions.push([this.generateQuestion([key], i), this.data[key]['ID']]);
-      toRender.push(this.generateQuestion([key], i))
-      i += 1;
+      if (key !== "authorised"){
+        this.questions.push([this.generateQuestion([key], i), this.data[key]['ID']]);
+        toRender.push(this.generateQuestion([key], i))
+        i += 1;
+      }
     }
     const x = <form>
       {toRender}

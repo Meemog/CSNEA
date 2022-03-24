@@ -63,6 +63,7 @@ class JoinPage extends React.Component {
     quizPromise
       .then((response) => response.json())
       .then((data ) => {
+        console.log(data);
         if (data['authorised']){
         let rounds = data['rounds'];
         this.rounds = rounds;

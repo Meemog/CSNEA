@@ -110,10 +110,11 @@ def create_app(test_config=None): #function that creates the app
                     jsonToAdd.update({'answers':answerDict})
 
 
-                questionDict.update({count:jsonToAdd})
+                questionDict.update({str(count):jsonToAdd})
                 count += 1
             response = questionDict
 
+            print(response)
             response = jsonify(response)
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response
@@ -208,6 +209,21 @@ def create_app(test_config=None): #function that creates the app
 
             userAnswers = json.loads(request.data.decode())
             print(userAnswers)
+
+            try:
+                token = userAnswers['token']
+            except:
+                token = ''
+
+            #verify identity
+            sessionQuery = f"SELECT UserID FROM UserSession WHERE Token='{token}';"
+            user = database.execute(sessionQuery).fetchone()
+
+        if user == None:
+            print("User not authorized")
+            response = {'authorised': 0}
+            responseCode = 401
+            return (response, responseCode)
 
             #gets the correct questions and answers from the round
             command = "SELECT QuestionID FROM QuestionInRound WHERE RoundID=" + str(roundid) + ";"
@@ -316,56 +332,51 @@ def create_app(test_config=None): #function that creates the app
 
         #create a round for each topic
         if responseCode == 200:
-            try:
-                topics = quizParams['topics']
-                allQuestions = []
-                for topic in topics:
-                    query = f"SELECT * FROM Question WHERE TopicID={topic};"
-                    questions = database.execute(query).fetchall()
-                    allQuestions.append([questions, topic])
+            topics = quizParams['topics']
+            allQuestions = []
+            for topic in topics:
+                query = f"SELECT * FROM Question WHERE TopicID={topic};"
+                questions = database.execute(query).fetchall()
+                allQuestions.append([questions, topic])
 
-                idQuery = "SELECT MAX(ID) FROM Quiz;"
-                quizCursor = database.execute(idQuery).fetchone()
-                quizId = quizCursor[0]
-                print(f"Quiz {quizId}:")
+            idQuery = "SELECT MAX(ID) FROM Quiz;"
+            quizCursor = database.execute(idQuery).fetchone()
+            quizId = quizCursor[0]
+            print(f"Quiz {quizId}:")
 
-                for i in range(len(allQuestions)): #for each potential round
-                    print(f"Processing round {i+1}:")
+            for i in range(len(allQuestions)): #for each potential round
+                print(f"Processing round {i+1}:")
 
-                    #create round
-                    roundQuery = f"INSERT INTO Round(TopicID, QuizID, StartDT) VALUES ({allQuestions[i][1]}, {quizId}, null);"
-                    database.execute(roundQuery)
-                    print(f"  Executed command: {roundQuery}")
+                #create round
+                roundQuery = f"INSERT INTO Round(TopicID, QuizID, StartDT) VALUES ({allQuestions[i][1]}, {quizId}, null);"
+                database.execute(roundQuery)
+                print(f"  Executed command: {roundQuery}")
 
-                    roundIdQuery = "SELECT MAX(ID) FROM Round;"
-                    roundId = database.execute(roundIdQuery).fetchone()[0]
-                    print(f"  Executed command: {roundIdQuery}")
-                    print(f"  Round ID: {roundId}")
+                roundIdQuery = "SELECT MAX(ID) FROM Round;"
+                roundId = database.execute(roundIdQuery).fetchone()[0]
+                print(f"  Executed command: {roundIdQuery}")
+                print(f"  Round ID: {roundId}")
 
-                    #add questions to round
-                    sample = random.sample(range(len(allQuestions[0][0])), int(numQuestions))
-                    questions = []
-                    for item in sample:
-                        questions.append(allQuestions[i][0][item][0])
+                #add questions to round
+                sample = random.sample(range(len(allQuestions[0][0])), int(numQuestions))
+                questions = []
+                for item in sample:
+                    questions.append(allQuestions[i][0][item][0])
 
-                    print(f"  Question IDs: {questions}")
+                print(f"  Question IDs: {questions}")
 
-                    for item in questions:
-                        query = f"INSERT INTO QuestionInRound VALUES ({item}, {roundId});"
-                        database.execute(query)
-                        print(f"Executed command: {query}")
+                for item in questions:
+                    query = f"INSERT INTO QuestionInRound VALUES ({item}, {roundId});"
+                    database.execute(query)
+                    print(f"Executed command: {query}")
 
-                database.commit()
-                print("Commited")
-                response = {
-                        'code': 200,
-                        'message': 'OK',
-                        'quizId': quizId
-                        }
-
-            except:
-                response = "Server error"
-                responseCode = 500
+            database.commit()
+            print("Commited")
+            response = {
+                    'code': 200,
+                    'message': 'OK',
+                    'quizId': quizId
+                    }
 
 
         response = jsonify(response)
@@ -408,8 +419,7 @@ def create_app(test_config=None): #function that creates the app
             for item in roundCursor:
                 rounds.append(item[0])
 
-            roundDict = {'rounds': rounds}
-            #roundDict.update({'authorised': 1}
+            roundDict = {'authorised': 1, 'rounds': rounds}
             response = roundDict
         response = jsonify(response)
         response.headers.add('Access-Control-Allow-Origin', '*')
