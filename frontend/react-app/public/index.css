@@ -21,6 +21,11 @@
           color: #3a3a3a;
           font-weight: bold;
       }
+      .topnav p {
+          padding-left: 50px;
+          color: #3a3a3a;
+          font-weight: bold;
+      }
 
 .topnav span:hover {
   background-color: #ddd;

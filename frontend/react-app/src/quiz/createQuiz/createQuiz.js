@@ -138,7 +138,8 @@ class CreateQuizPage extends React.Component {
           'quizParams': {
             'topics': topics,
             'numQuestions': numQuestions,
-            'difficulty': difficulty
+            'difficulty': difficulty,
+            'token': this.getCookie("token")
           }
         };
          this.postParams(params);
@@ -151,6 +152,12 @@ class CreateQuizPage extends React.Component {
       }
       alert(toAlert);
     }
+  }
+
+  getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(` ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
   }
 
   postParams(params){
@@ -174,7 +181,7 @@ class CreateQuizPage extends React.Component {
           alert(`Quiz parameters succesfully submitted\nQuizID: ${response.quizId}`);
           window.location.reload(false);
         }else{
-          alert(`There was an error in submission\nResponse Code: ${response.status}`);
+          alert(`There was an error in submission\nResponse: ${response}`);
         }
       })
     return

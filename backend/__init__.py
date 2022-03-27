@@ -24,7 +24,7 @@ def create_app(test_config=None): #function that creates the app
         app.config.from_mapping(test_config)
 
     try:
-        os.makedirs(app.instance_path) 
+        os.makedirs(app.instance_path)
         #tries to make the files needed, but doesn't crash if they already exist
     except OSError:
         pass
@@ -114,7 +114,6 @@ def create_app(test_config=None): #function that creates the app
                 count += 1
             response = questionDict
 
-            print(response)
             response = jsonify(response)
             response.headers.add('Access-Control-Allow-Origin', '*')
             return response
@@ -217,13 +216,13 @@ def create_app(test_config=None): #function that creates the app
 
             #verify identity
             sessionQuery = f"SELECT UserID FROM UserSession WHERE Token='{token}';"
-            user = database.execute(sessionQuery).fetchone()
+            user = database.execute(sessionQuery).fetchone()[0]
 
-        if user == None:
-            print("User not authorized")
-            response = {'authorised': 0}
-            responseCode = 401
-            return (response, responseCode)
+            if user == None:
+                print("User not authorized")
+                response = {'authorised': 0}
+                responseCode = 401
+                return (response, responseCode)
 
             #gets the correct questions and answers from the round
             command = "SELECT QuestionID FROM QuestionInRound WHERE RoundID=" + str(roundid) + ";"
@@ -231,23 +230,39 @@ def create_app(test_config=None): #function that creates the app
             print(f"Executed command: {command}")
             toAdd = {}
 
+            roundScore = 0
+
             for row in rows:
                 try: #selects the answers for all the questions in the current round
                     questionID = str(row[0])
                     answerCommand = "SELECT AnswerText FROM Answer WHERE questionID=" + questionID + " AND Correct=1;"
                     correctAnswer = database.execute(answerCommand).fetchone()[0]
                     print(f"Executed command: {answerCommand}")
-                    print(questionID)
+                    correct = (correctAnswer == userAnswers['answers'][questionID])
                     toAdd.update({questionID: {
                         'correctAnswer': correctAnswer,
                         'userAnswer': userAnswers['answers'][questionID],
-                        'correct': (correctAnswer == userAnswers['answers'][questionID])
+                        'correct': correct
                         }})
+                    if correct:
+                        roundScore += 1
                 except: #if the questions don't match up, a bad request error is returned
                     response = jsonify({"error": "Unprocessable Entity",
                         "recieved": userAnswers})
                     response.headers.add('Access-Control-Allow-Origin', '*')
                     return(response, 422)
+
+            #submit score to roundSession
+
+            #get QuizSession
+            sessionQuery = f"SELECT ID FROM QuizSession WHERE UserID={user} AND QuizID={userAnswers['quizID']};"
+            print(sessionQuery)
+            cursor = database.execute(sessionQuery).fetchone()
+            sessionID = cursor[0]
+
+            #round id stored in roundid
+
+            #TODO: add score to session
 
             response = toAdd
 
@@ -302,27 +317,39 @@ def create_app(test_config=None): #function that creates the app
         try:
             quizParams = params['quizParams']
 
-            author = 0 #PLACEHOLDER
             numQuestions = quizParams['numQuestions']
             difficulty = quizParams['difficulty']
+            token = quizParams['token']
 
         except:
+            token = ''
             responseCode = 422
             response = "Couldn't unpack data"
+
+        database = db.get_db()
+
+        #verify identity
+        sessionQuery = f"SELECT UserID FROM UserSession WHERE Token='{token}';"
+        user = database.execute(sessionQuery).fetchone()
+
+        if user == None:
+            print("User not authorized")
+            response = "User not authorized"
+            responseCode = 401
 
         dificulties = ['Easy', 'Medium', 'Hard']
         if (difficulty not in dificulties):
             responseCode = 400
             response = "difficulty not valid"
 
+        author = user[0]
+
         if responseCode == 200:
             try:
                 database = db.get_db()
                 query = f"INSERT INTO Quiz(Generator, NumQuestions, Difficulty) VALUES ({author}, {numQuestions}, '{difficulty}');"
-
-                test = database.execute(query).fetchall()
                 print(f"Executed command: {query}")
-                print(test)
+                test = database.execute(query).fetchall()
                 database.commit()
             except Exception as e:
                 print(e)
@@ -409,12 +436,22 @@ def create_app(test_config=None): #function that creates the app
         if responseCode == 200:
             print(f"User authorised: {user[0]}")
 
+            #add user to QuizSession table
+            userID = user[0]
+            database.execute(f"DELETE FROM QuizSession WHERE UserID={userID} AND QuizID={quizID}")
+            database.commit()
+            command = f"INSERT INTO QuizSession(UserID, QuizID) VALUES ({userID}, {quizID})"
+
+            database.execute(command)
+            print(f"Executed command: {command}")
+            database.commit()
+
             rounds = []
             roundQuery = f"SELECT ID FROM round WHERE QuizID={quizID}"
 
-            database = db.get_db()
 
             roundCursor = database.execute(roundQuery).fetchall()
+            print(f"Executed command: {roundQuery}")
 
             for item in roundCursor:
                 rounds.append(item[0])
@@ -461,7 +498,6 @@ def create_app(test_config=None): #function that creates the app
     @app.route('/login', methods=['POST'])
     def login():
         params = json.loads(request.data.decode())
-        print(params)
 
         #get user id from username
         idQuery = f"SELECT ID FROM User WHERE Username='{params['username']}'"
@@ -478,7 +514,6 @@ def create_app(test_config=None): #function that creates the app
 
             return(response, responseCode)
 
-        print(id)
 
         #check authentication
         passQuery = f"SELECT Password FROM User WHERE ID={id}"
@@ -512,7 +547,6 @@ def create_app(test_config=None): #function that creates the app
 
         #make session
         token = ''.join(random.choices(string.ascii_letters + string.digits, k=64))
-        print(token)
 
         sessionCommand = f"INSERT INTO UserSession(Token, UserID, LastUsed) VALUES ('{token}', {id}, {time.time()});"
 
@@ -528,5 +562,20 @@ def create_app(test_config=None): #function that creates the app
         response.headers.add('Access-Control-Allow-Origin', '*')
 
         return(response, responseCode)
+
+    @app.route('/getUsername', methods=['POST'])
+    def username():
+
+        params = json.loads(request.data.decode())
+        token = params['token']
+        database = db.get_db()
+
+        command = f"SELECT Username FROM User INNER JOIN UserSession ON User.ID=UserSession.UserID AND UserSession.Token=\"{token}\""
+        username = database.execute(command).fetchone()
+        print(username[0])
+        toReturn = { 'username':username[0] }
+        response = jsonify(toReturn)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
 
     return app

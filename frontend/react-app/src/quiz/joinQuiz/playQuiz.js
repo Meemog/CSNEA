@@ -6,6 +6,7 @@ class QuestionPage extends React.Component {
     super(props);
     this.content = <div />
     this.rounds = this.props.rounds
+    this.quizID = this.props.quizID
     this.roundNum = 0
     this.renderForm(this.rounds[this.roundNum])
     this.hasSubmitted = false;
@@ -55,12 +56,19 @@ class QuestionPage extends React.Component {
     return x
   }
 
-
   getAnswers() {
     for (let j=0; j < this.questions.length; j++){
       this.answers['answers'][this.questions[j][1]] = (document.getElementById('textInput' + j.toString()).value);
     }
+    this.answers['token'] = this.getCookie("token")
+    this.answers['quizID'] = this.quizID;
     this.submitAnswers(this.answers);
+  }
+
+  getCookie(name) {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(` ${name}=`);
+    if (parts.length === 2) return parts.pop().split(';').shift();
   }
 
   submitAnswers(ansDict) {

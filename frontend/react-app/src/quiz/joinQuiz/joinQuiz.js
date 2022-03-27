@@ -23,6 +23,7 @@ class JoinPage extends React.Component {
 
   submit(){
     let quizId = document.getElementById("quizid").value;
+    this.quizID = quizId
     let actions = []
 
     if (!/^([1-9][0-9]*)$/.test(quizId) && quizId !== "0"){
@@ -79,7 +80,7 @@ class JoinPage extends React.Component {
     if (!this.state.data){
       return (this.content)
     } else{
-      return (<QuestionPage rounds={this.rounds}/>)
+      return (<QuestionPage rounds={this.rounds} quizID={this.quizID}/>)
     }
   }
 }
