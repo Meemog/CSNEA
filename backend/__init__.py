@@ -555,6 +555,8 @@ def create_app(test_config=None): #function that creates the app
         database.commit()
 
 
+        print(f"User logged in as {params['username']}")
+
         responseCode = 200
         response = {'response': 'OK', 'sessionToken': token}
 
@@ -567,15 +569,105 @@ def create_app(test_config=None): #function that creates the app
     def username():
 
         params = json.loads(request.data.decode())
-        token = params['token']
+        try:
+            token = params['token']
+        except:
+            token = ''
         database = db.get_db()
 
         command = f"SELECT Username FROM User INNER JOIN UserSession ON User.ID=UserSession.UserID AND UserSession.Token=\"{token}\""
-        username = database.execute(command).fetchone()
-        print(username[0])
-        toReturn = { 'username':username[0] }
+        try:
+            username = database.execute(command).fetchone()
+            toReturn = { 'validToken': True, 'username':username[0] }
+        except:
+            toReturn = { 'validToken': False }
         response = jsonify(toReturn)
         response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+
+
+    @app.route('/createSession', methods=['POST'])
+    def createSession():
+        params = json.loads(request.data.decode())
+
+        try:
+            token = params['token']
+        except:
+            token = ''
+
+        database = db.get_db()
+        sessionQuery = f"SELECT UserID FROM UserSession WHERE Token='{token}';"
+        user = database.execute(sessionQuery).fetchone()
+
+        if user == None:
+            print("User not authorized")
+            response = {'authorised': 0}
+            responseCode = 401
+        else:
+            print(f"User authorised: {user[0]}")
+
+            #Create Session Code
+            sessionCode = ''.join(random.choices(string.ascii_letters.upper(), k=8))
+
+            #create session
+            command = f"INSERT INTO QuizSession(Creator, QuizID, SessionCode) VALUES ({user[0]}, {params['quizId']}, '{sessionCode}')"
+            database.execute(command)
+            database.commit()
+            print(f"Executed command: {command}")
+
+            #get session id
+            idCommand = f"SELECT MAX(ID) FROM QuizSession"
+            sessionId = database.execute(idCommand).fetchone()[0]
+
+            response = {
+                'sessionId': sessionId,
+                'sessionCode': sessionCode}
+
+            #Add author to session
+            memberCommand = f"INSERT INTO QuizMember (UserID, SessionID) VALUES ({user[0]}, {sessionId})"
+            database.execute(memberCommand)
+            database.commit()
+            print(f"Executed command: {memberCommand}")
+
+        response = jsonify(response)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+
+    @app.route('/getMembers', methods=['POST'])
+    def getMebers():
+        params = json.loads(request.data.decode())
+
+        try:
+            token = params['token']
+            sessionId = params['sessionId']
+        except:
+            token = ''
+            sessionId = ''
+
+        database = db.get_db()
+        sessionQuery = f"SELECT UserID FROM UserSession WHERE Token='{token}';"
+        user = database.execute(sessionQuery).fetchone()
+
+        if user == None:
+            print("User not authorized")
+            response = {'authorised': 0}
+            responseCode = 401
+        else:
+            print(f"User authorised: {user[0]}")
+
+            command = f"SELECT Username FROM User INNER JOIN QuizMember ON QuizMember.UserID=User.ID AND QuizMember.SessionID={sessionId};"
+            ids = database.execute(command).fetchall()
+            print(f"Executed command: {command}")
+            usernameList = []
+            for item in ids:
+                print(item[0])
+                usernameList.append(item[0])
+
+            response = {"Usernames": usernameList}
+
+        response = jsonify(response)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+
         return response
 
     return app

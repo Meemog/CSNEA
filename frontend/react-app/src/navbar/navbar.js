@@ -20,11 +20,6 @@ class NavBar extends React.Component {
   checkIfLoggedIn(){
     let token = this.getCookie("token");
     this.getUsername(token);
-    if (token !== undefined){
-      return true;
-    }else{
-      return false
-    }
   }
 
   getCookie(name) {
@@ -49,8 +44,15 @@ class NavBar extends React.Component {
     userPromise
       .then((response) => response.json())
       .then((text) => {
-        console.log(text);
-        this.username = <p>{text['username']}</p>;
+        if (text['validToken']){
+          this.username = <p>{text['username']}</p>;
+        } else{
+          this.username = (
+            <span>
+              <Link to="/login">Login</Link>
+            </span>
+          )
+        }
         this.setState( { state: this.state } )
         })
   }

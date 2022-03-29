@@ -10,6 +10,7 @@ import { QuestionForm } from './createQuestions/createQuestions.js';
 import { CreateQuizPage } from './quiz/createQuiz/createQuiz.js';
 import { CreateOrPlay } from './quiz/choice.js';
 import { JoinPage } from './quiz/joinQuiz/joinQuiz.js';
+import { QuizSession } from './quiz/createSession.js';
 
 ReactDOM.render((
   <Router>
@@ -23,6 +24,7 @@ ReactDOM.render((
         <Route path='/createQuiz' element={<CreateQuizPage />} />
         <Route path='/joinQuiz' element={<JoinPage />} />
         <Route path='/choice' element={<CreateOrPlay />} />
+        <Route path='/createSession' element={<QuizSession/>} />
 
       </Routes>
     </div>

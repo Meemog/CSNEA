@@ -5,6 +5,7 @@ import React from 'react';
 class QuestionForm extends React.Component {
   constructor(props) {
     super(props);
+    this.clearAllIntervals()
     this.addToAnswers = this.addToAnswers.bind(this);
     this.removeItemFromObject = this.removeItemFromObject.bind(this);
     this.answerFields = {0:
@@ -29,6 +30,13 @@ class QuestionForm extends React.Component {
     this.answerFields[this.nextID] = (this.generateAnswerField(this.nextID))
     this.nextID += 1;
     this.setState( { state: this.state } )
+  }
+
+  clearAllIntervals(){
+    const interval_id = window.setInterval(function(){}, Number.MAX_SAFE_INTEGER);
+    for (let i = 1; i < interval_id; i++) {
+      window.clearInterval(i);
+    }
   }
 
   generateAnswerField(index) {
