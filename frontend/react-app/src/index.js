@@ -9,7 +9,7 @@ import { HomePage } from './homepage/homepage.js';
 import { QuestionForm } from './createQuestions/createQuestions.js';
 import { CreateQuizPage } from './quiz/createQuiz/createQuiz.js';
 import { CreateOrPlay } from './quiz/choice.js';
-import { JoinPage } from './quiz/joinQuiz/joinQuiz.js';
+import { JoinForm } from './quiz/joinQuiz/joinQuiz.js';
 import { QuizSession } from './quiz/createSession.js';
 
 ReactDOM.render((
@@ -22,7 +22,7 @@ ReactDOM.render((
         <Route path='/register' element={<RegisterPage />} />
         <Route path='/createQuestion' element={<QuestionForm />} />
         <Route path='/createQuiz' element={<CreateQuizPage />} />
-        <Route path='/joinQuiz' element={<JoinPage />} />
+        <Route path='/joinQuiz' element={<JoinForm />} />
         <Route path='/choice' element={<CreateOrPlay />} />
         <Route path='/createSession' element={<QuizSession/>} />
 
