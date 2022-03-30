@@ -134,6 +134,7 @@ def create_app(test_config=None): #function that creates the app
             #verify identity
             sessionQuery = f"SELECT UserID FROM UserSession WHERE Token='{token}';"
             user = database.execute(sessionQuery).fetchone()
+            print(f"Executed command: {sessionQuery}")
 
             if user == None:
                 print("User not authorized")
@@ -163,8 +164,8 @@ def create_app(test_config=None): #function that creates the app
                 print(f"Executed command: {query}")
                 try:
                     database.execute(query)
-                    database.commit()
                     print(f"Executed command: {query}")
+                    database.commit()
                 except:
                     responseCode = 422
                     responseText = "Couldn't write to the database"
@@ -182,6 +183,7 @@ def create_app(test_config=None): #function that creates the app
 
                 try:
                     database.execute(ansQuery)
+                    print(f"Executed command: {ansQuery}")
                     database.commit()
                     print(f"Executed command: {ansQuery}")
                 except:
@@ -207,7 +209,6 @@ def create_app(test_config=None): #function that creates the app
             database = db.get_db()
 
             userAnswers = json.loads(request.data.decode())
-            print(userAnswers)
 
             try:
                 token = userAnswers['token']
@@ -217,6 +218,7 @@ def create_app(test_config=None): #function that creates the app
             #verify identity
             sessionQuery = f"SELECT UserID FROM UserSession WHERE Token='{token}';"
             user = database.execute(sessionQuery).fetchone()[0]
+            print(f"Executed command {sessionQuery}")
 
             if user == None:
                 print("User not authorized")
@@ -256,8 +258,8 @@ def create_app(test_config=None): #function that creates the app
 
             #get QuizSession
             sessionQuery = f"SELECT ID FROM QuizSession WHERE UserID={user} AND QuizID={userAnswers['quizID']};"
-            print(sessionQuery)
             cursor = database.execute(sessionQuery).fetchone()
+            print(f"Executed command: {sessionQuery}")
             sessionID = cursor[0]
 
             #round id stored in roundid
@@ -331,6 +333,7 @@ def create_app(test_config=None): #function that creates the app
         #verify identity
         sessionQuery = f"SELECT UserID FROM UserSession WHERE Token='{token}';"
         user = database.execute(sessionQuery).fetchone()
+        print(f"Executed command: {sessionQuery}")
 
         if user == None:
             print("User not authorized")
@@ -350,6 +353,7 @@ def create_app(test_config=None): #function that creates the app
                 query = f"INSERT INTO Quiz(Generator, NumQuestions, Difficulty) VALUES ({author}, {numQuestions}, '{difficulty}');"
                 print(f"Executed command: {query}")
                 test = database.execute(query).fetchall()
+                print(f"Executed command: {query}")
                 database.commit()
             except Exception as e:
                 print(e)
@@ -364,10 +368,12 @@ def create_app(test_config=None): #function that creates the app
             for topic in topics:
                 query = f"SELECT * FROM Question WHERE TopicID={topic};"
                 questions = database.execute(query).fetchall()
+                print(f"Executed command: {query}")
                 allQuestions.append([questions, topic])
 
             idQuery = "SELECT MAX(ID) FROM Quiz;"
             quizCursor = database.execute(idQuery).fetchone()
+            print(f"Executed command: {idQuery}")
             quizId = quizCursor[0]
             print(f"Quiz {quizId}:")
 
@@ -398,7 +404,6 @@ def create_app(test_config=None): #function that creates the app
                     print(f"Executed command: {query}")
 
             database.commit()
-            print("Commited")
             response = {
                     'code': 200,
                     'message': 'OK',
@@ -427,6 +432,7 @@ def create_app(test_config=None): #function that creates the app
         #verify identity
         sessionQuery = f"SELECT UserID FROM UserSession WHERE Token='{token}';"
         user = database.execute(sessionQuery).fetchone()
+        print(f"Executed command: {sessionQuery}")
 
         if user == None:
             print("User not authorized")
@@ -438,7 +444,9 @@ def create_app(test_config=None): #function that creates the app
 
             #add user to QuizSession table
             userID = user[0]
-            database.execute(f"DELETE FROM QuizSession WHERE UserID={userID} AND QuizID={quizID}")
+            delCommand = f"DELETE FROM QuizSession WHERE UserID={userID} AND QuizID={quizID}"
+            database.execute(delCommand)
+            print(f"Executed command: {delCommand}")
             database.commit()
             command = f"INSERT INTO QuizSession(UserID, QuizID) VALUES ({userID}, {quizID})"
 
@@ -474,9 +482,9 @@ def create_app(test_config=None): #function that creates the app
 
         usernameQuery = f"SELECT EXISTS(SELECT 1 FROM User WHERE Username='{params['username']}')"
         testUserId = database.execute(usernameQuery).fetchone()
+        print(f"Executed command: {usernameQuery}")
 
         if (testUserId[0]):
-            print('Username Taken')
             response = jsonify({'response': 'Username already in use'})
             response.headers.add('Access-Control-Allow-Origin', '*')
             return (response, 409)
@@ -505,6 +513,7 @@ def create_app(test_config=None): #function that creates the app
         try:
             database = db.get_db()
             id = database.execute(idQuery).fetchone()[0]
+            print(f"Executed command: {idQuery}")
 
         except:
             responseCode = 422
@@ -520,6 +529,7 @@ def create_app(test_config=None): #function that creates the app
 
         try:
             password = database.execute(passQuery).fetchone()[0]
+            print(f"Executed command: {password}")
         except:
             responseCode = 500
             response = {'response': 'Error checking password'}
@@ -539,10 +549,12 @@ def create_app(test_config=None): #function that creates the app
         #Delete old session if user is already logged in
         sessionQuery = f"SELECT EXISTS(SELECT 1 FROM userSession WHERE UserID = {id})"
         isLoggedIn = database.execute(sessionQuery).fetchone()[0]
+        print(f"Executed command: {sessionQuery}")
 
         if isLoggedIn:
             delCommand = f"DELETE FROM userSession WHERE UserID={id}"
             database.execute(delCommand)
+            print(f"Executed command: {delCommand}")
             database.commit()
 
         #make session
@@ -578,6 +590,7 @@ def create_app(test_config=None): #function that creates the app
         command = f"SELECT Username FROM User INNER JOIN UserSession ON User.ID=UserSession.UserID AND UserSession.Token=\"{token}\""
         try:
             username = database.execute(command).fetchone()
+            print(f"Executed command: {command}")
             toReturn = { 'validToken': True, 'username':username[0] }
         except:
             toReturn = { 'validToken': False }
@@ -598,6 +611,7 @@ def create_app(test_config=None): #function that creates the app
         database = db.get_db()
         sessionQuery = f"SELECT UserID FROM UserSession WHERE Token='{token}';"
         user = database.execute(sessionQuery).fetchone()
+        print(f"Executed command: {sessionQuery}")
 
         if user == None:
             print("User not authorized")
@@ -606,8 +620,19 @@ def create_app(test_config=None): #function that creates the app
         else:
             print(f"User authorised: {user[0]}")
 
-            #Create Session Code
-            sessionCode = ''.join(random.choices(string.ascii_letters.upper(), k=8))
+            cont = False
+            while not cont:
+                #Create Session Code
+                sessionCode = ''.join(random.choices(string.ascii_letters.upper(), k=8))
+
+                #Check if code exists
+                command = f"SELECT ID FROM QuizSession WHERE SessionCode=\"{sessionCode}\";"
+
+                sessionExists = database.execute(command).fetchone()
+                print(f"Executed command: {command}")
+
+                if sessionExists == None:
+                    cont = True
 
             #create session
             command = f"INSERT INTO QuizSession(Creator, QuizID, SessionCode) VALUES ({user[0]}, {params['quizId']}, '{sessionCode}')"
@@ -618,6 +643,7 @@ def create_app(test_config=None): #function that creates the app
             #get session id
             idCommand = f"SELECT MAX(ID) FROM QuizSession"
             sessionId = database.execute(idCommand).fetchone()[0]
+            print(f"Executed command: {idCommand}")
 
             response = {
                 'sessionId': sessionId,
@@ -633,6 +659,48 @@ def create_app(test_config=None): #function that creates the app
         response.headers.add('Access-Control-Allow-Origin', '*')
         return response
 
+    @app.route('/joinSession', methods=['POST'])
+    def joinSession():
+        params = json.loads(request.data.decode())
+
+        try:
+            token = params['token']
+            sessionCode = params['code'].upper()
+        except:
+            token = ''
+            sessionCode = ''
+
+        database = db.get_db()
+        sessionQuery = f"SELECT UserID FROM UserSession WHERE Token='{token}';"
+        user = database.execute(sessionQuery).fetchone()
+        print(f"Executed command: {sessionQuery}")
+
+        if user == None:
+            print("User not authorized")
+            response = {'authorised': 0}
+            responseCode = 401
+        else:
+            print(f"User authorised: {user[0]}")
+
+            #get session id
+            sessionCommand = f"SELECT ID FROM QuizSession WHERE SessionCode=\"{sessionCode}\""
+
+            sessionId = database.execute(sessionCommand).fetchone()
+            print(f"Executed command: {sessionCommand}")
+            if sessionId == None:
+                response = {"Response": "Incorrect code"}
+            else:
+                #add user to session
+                memberCommand = f"INSERT INTO QuizMember (UserID, SessionID) VALUES ({user[0]}, {sessionId[0]})"
+                database.execute(memberCommand)
+                print(f"Executed command: {memberCommand}")
+                database.commit()
+                response = {"sessionId": sessionId[0], 'authorised': 1}
+        response = jsonify(response)
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        return response
+
+
     @app.route('/getMembers', methods=['POST'])
     def getMebers():
         params = json.loads(request.data.decode())
@@ -647,6 +715,7 @@ def create_app(test_config=None): #function that creates the app
         database = db.get_db()
         sessionQuery = f"SELECT UserID FROM UserSession WHERE Token='{token}';"
         user = database.execute(sessionQuery).fetchone()
+        print(f"Executed command: {sessionQuery}")
 
         if user == None:
             print("User not authorized")
@@ -660,7 +729,6 @@ def create_app(test_config=None): #function that creates the app
             print(f"Executed command: {command}")
             usernameList = []
             for item in ids:
-                print(item[0])
                 usernameList.append(item[0])
 
             response = {"Usernames": usernameList}
