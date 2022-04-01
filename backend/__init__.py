@@ -688,7 +688,7 @@ def create_app(test_config=None): #function that creates the app
             sessionId = database.execute(sessionCommand).fetchone()
             print(f"Executed command: {sessionCommand}")
             if sessionId == None:
-                response = {"Response": "Incorrect code"}
+                response = {"authorised": 1, "Response": "Incorrect code"}
             else:
                 #add user to session
                 memberCommand = f"INSERT INTO QuizMember (UserID, SessionID) VALUES ({user[0]}, {sessionId[0]})"
@@ -708,14 +708,15 @@ def create_app(test_config=None): #function that creates the app
         try:
             token = params['token']
             sessionId = params['sessionId']
-        except:
+        except Exception as e:
+            print(e)
             token = ''
-            sessionId = ''
+            sessionid = ''
 
         database = db.get_db()
-        sessionQuery = f"SELECT UserID FROM UserSession WHERE Token='{token}';"
+        sessionQuery = f"SELECT UserID FROM UserSession WHERE TOKEN='{token}';"
         user = database.execute(sessionQuery).fetchone()
-        print(f"Executed command: {sessionQuery}")
+        print(f"executed command: {sessionQuery}")
 
         if user == None:
             print("User not authorized")
@@ -737,5 +738,57 @@ def create_app(test_config=None): #function that creates the app
         response.headers.add('Access-Control-Allow-Origin', '*')
 
         return response
+
+    @app.route('/startGame', methods=['POST'])
+    def startGame():
+        #Check if user is logged in
+        params = json.loads(request.data.decode())
+
+        try:
+            token = params['token']
+            sessionId = params['sessionId']
+        except:
+            token = ''
+            sessionId = ''
+
+        database = db.get_db()
+        sessionQuery = f"SELECT UserID FROM UserSession WHERE TOKEN='{token}';"
+        user = database.execute(sessionQuery).fetchone()
+        print(f"executed command: {sessionQuery}")
+
+        if user == None:
+            print("User not authorized")
+            response = {'authorised': 0}
+            responseCode = 401
+        else:
+            print(f"User authorised: {user[0]}")
+
+            #Check if user is the creator of the session
+            command = f"SELECT Creator FROM QuizSession WHERE ID={sessionId};"
+
+            creatorId = database.execute(command).fetchone()[0]
+            print(f"creatorId: {creatorId}, userId: {user[0]}")
+
+            if str(creatorId) != str(user[0]):
+                print("User not owner of session")
+                response = {'authorised': 0}
+                responseCode = 401
+            else:
+                print("User is owner of session")
+
+                #Add a value to the startTime column
+                timeCommand = f"UPDATE QuizSession SET StartTime = {time.time()} WHERE ID={sessionId};"
+                database.execute(timeCommand)
+                print(f"Executed command: {timeCommand}")
+                database.commit()
+                response = {'authorised': 1, 'completed': 1}
+
+
+        #Return status
+        response = jsonify(response)
+        response.headers.add("Access-Control-Allow-Origin", "*")
+
+        return response
+
 
     return app

@@ -22,7 +22,6 @@ class QuizSession extends React.Component {
   getData(){
     let actions = []
 
-
     let quizId = document.getElementById("QuizID").value
     if (!/^([0-9]+)$/.test(quizId)){
       actions.push("Enter a valid ID")

@@ -103,6 +103,27 @@ class Lobby extends React.Component {
     }, 10000)
   }
 
+  startGame(){
+    let startInit = { method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain',
+        },
+      cache: 'default',
+      mode: 'cors',
+      body: JSON.stringify({'token': this.getCookie('token'), "sessionId": this.sessionId})
+    }
+
+    let startRequest = new Request(("http://127.0.0.1:5000/startGame"), startInit);
+    const startPromise = fetch(startRequest);
+
+    startPromise
+      .then((response) => response.json())
+      .then((data) => {
+        console.log(data)
+      })
+
+  }
+
   render(){
     return (
       <div>
@@ -114,7 +135,7 @@ class Lobby extends React.Component {
           </div>
         </span>
         <span>
-          <input type='button' value='Start' />
+          <input type='button' value='Start' onClick={()=>{this.startGame()}}/>
         </span>
         <span>
           <h2>Code:</h2>

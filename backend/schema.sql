@@ -64,6 +64,7 @@ CREATE TABLE QuizSession (
   Creator INTEGER,
   QuizID INTEGER,
   SessionCode TEXT,
+  StartTime INTEGER,
   FOREIGN KEY (Creator) REFERENCES User(ID),
   FOREIGN KEY (QuizID) REFERENCES Quiz(ID)
 );
