@@ -725,6 +725,7 @@ def create_app(test_config=None): #function that creates the app
         else:
             print(f"User authorised: {user[0]}")
 
+            #get members of the session
             command = f"SELECT Username FROM User INNER JOIN QuizMember ON QuizMember.UserID=User.ID AND QuizMember.SessionID={sessionId};"
             ids = database.execute(command).fetchall()
             print(f"Executed command: {command}")
@@ -732,10 +733,64 @@ def create_app(test_config=None): #function that creates the app
             for item in ids:
                 usernameList.append(item[0])
 
-            response = {"Usernames": usernameList}
+            #get if the quiz has started
+            startCommand = f"SELECT StartTime FROM QuizSession WHERE ID={sessionId}"
+
+            startTime = database.execute(startCommand).fetchone()[0]
+            print(f"Executed command: {startCommand}")
+
+            if startTime != None:
+                response = {"StartTime": startTime, "Usernames": usernameList}
+            else:
+                response = {"Usernames": usernameList}
+
 
         response = jsonify(response)
         response.headers.add('Access-Control-Allow-Origin', '*')
+
+        return response
+
+    @app.route('/getSessionCode', methods=['POST'])
+    def getCode():
+        #Check if user is logged in
+        params = json.loads(request.data.decode())
+
+        try:
+            token = params['token']
+            sessionId = params['sessionId']
+        except:
+            token = ''
+            sessionId = ''
+
+        database = db.get_db()
+        sessionQuery = f"SELECT UserID FROM UserSession WHERE TOKEN='{token}';"
+        user = database.execute(sessionQuery).fetchone()
+        print(f"executed command: {sessionQuery}")
+
+        if user == None:
+            print("User not authorized")
+            response = {'authorised': 0}
+            responseCode = 401
+        else:
+            print(f"User authorised: {user[0]}")
+            #check if user is a member of the session
+
+            memberCommand = f"SELECT ID FROM QuizMember WHERE UserID={user[0]} AND SessionId={sessionId};"
+
+            memberId = database.execute(memberCommand).fetchone()[0]
+            print(f"Executed command: {memberCommand}")
+
+            if memberId != None:
+                codeCommand = f"SELECT SessionCode FROM QuizSession WHERE ID={sessionId};"
+
+                code = database.execute(codeCommand).fetchone()[0]
+                response = {"response": "Success", "code": code}
+
+            else:
+                response = {"response": "Not in session"}
+
+        response = jsonify(response)
+        response.headers.add("Access-Control-Allow-Origin", "*")
 
         return response
 
@@ -777,7 +832,7 @@ def create_app(test_config=None): #function that creates the app
                 print("User is owner of session")
 
                 #Add a value to the startTime column
-                timeCommand = f"UPDATE QuizSession SET StartTime = {time.time()} WHERE ID={sessionId};"
+                timeCommand = f"UPDATE QuizSession SET StartTime={time.time()+10} WHERE ID={sessionId};"
                 database.execute(timeCommand)
                 print(f"Executed command: {timeCommand}")
                 database.commit()

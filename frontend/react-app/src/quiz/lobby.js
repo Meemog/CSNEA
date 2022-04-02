@@ -8,12 +8,15 @@ class Lobby extends React.Component {
     this.sessionCode = "Pending...";
     this.sessionId = null;
     this.usernames = []
+    this.titleText = "Looking for players";
+    this.startButton = (
+      <span>
+        <input type='button' value='Start' onClick={()=>{this.startGame()}}/>
+      </span>
+    )
     //setup session
     this.searchingDots()
     this.setupSession();
-    this.dots = "";
-    //start looking for players
-    //this.searchInterval();
   }
 
   getCookie(name) {
@@ -47,11 +50,13 @@ class Lobby extends React.Component {
   }
 
   searchingDots(){
+    let dots = ""
     setInterval(() => {
-      this.dots += ".";
-      if (this.dots.length > 3){
-        this.dots = ""
+      dots += ".";
+      if (dots.length > 3){
+        dots = ""
       }
+      this.titleText = "Looking for players" + dots;
       this.setState( { state: this.state } )
     }, 800)
   }
@@ -78,6 +83,7 @@ class Lobby extends React.Component {
           this.usernames.push(<p>{usernames[i]}</p>)
         }
       })
+
     setInterval(() => {
       console.log("Looking for players now")
       let searchInit = { method: 'POST',
@@ -94,13 +100,50 @@ class Lobby extends React.Component {
       searchPromise
         .then((response) => response.json())
         .then((data) =>{
+          if (data['StartTime']){
+            const currentDate = new Date();
+            const timestamp = currentDate.getTime()/1000;
+            console.log(timestamp)
+            console.log(data['StartTime'])
+            const timeToStart = data['StartTime'] - timestamp
+
+            console.log(`Game starts in: ${timeToStart}`)
+            this.wait(timeToStart - 5)
+          }
           let usernames = data['Usernames']
           this.usernames = []
           for (let i=0; i < usernames.length; i++){
             this.usernames.push(<p>{usernames[i]}</p>)
           }
         })
-    }, 10000)
+    }, 5000)
+  }
+
+  clearAllIntervals(){
+    const interval_id = window.setInterval(function(){}, Number.MAX_SAFE_INTEGER);
+    for (let i = 1; i < interval_id; i++) {
+      window.clearInterval(i);
+    }
+  }
+
+  wait(waitTime){
+    this.clearAllIntervals()
+    this.titleText = "Starting Soon"
+    this.setState( { state: this.state } )
+    setTimeout(this.countdown(), waitTime * 1000)
+  }
+
+  countdown(){
+    let numTimes = 5
+    let loop = setInterval(() => {
+      console.log(numTimes);
+      this.titleText = `Starting in: ${numTimes}`
+      this.setState( { state: this.state } )
+      numTimes -= 1;
+      if (numTimes === 0){
+        window.clearInterval(loop)
+      }
+    }, 1000)
   }
 
   startGame(){
@@ -127,16 +170,14 @@ class Lobby extends React.Component {
   render(){
     return (
       <div>
-        <h1>Looking for players{this.dots}</h1>
+        <h1>{this.titleText}</h1>
         <span>
           <h2>Players:</h2>
           <div>
             {this.usernames}
           </div>
         </span>
-        <span>
-          <input type='button' value='Start' onClick={()=>{this.startGame()}}/>
-        </span>
+        {this.startButton}
         <span>
           <h2>Code:</h2>
           <p>{this.sessionCode}</p>
