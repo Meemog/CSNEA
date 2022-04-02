@@ -123,7 +123,7 @@ class JoinLobby extends React.Component {
     this.clearAllIntervals()
     this.titleText = "Starting Soon"
     this.setState( { state: this.state } )
-    setTimeout(this.countdown(), waitTime * 1000)
+    setTimeout(() => {this.countdown()}, Math.floor(waitTime * 1000))
   }
 
   countdown(){
