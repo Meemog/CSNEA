@@ -38,8 +38,8 @@ VALUES
 
 INSERT INTO Round
 VALUES
-    (0, 0, 0, NULL),
-    (1, 1, 0, NULL);
+    (0, 0, 0),
+    (1, 1, 0);
 
 INSERT INTO QuestionInRound
 VALUES

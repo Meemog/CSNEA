@@ -442,21 +442,8 @@ def create_app(test_config=None): #function that creates the app
         if responseCode == 200:
             print(f"User authorised: {user[0]}")
 
-            #add user to QuizSession table
-            userID = user[0]
-            delCommand = f"DELETE FROM QuizSession WHERE UserID={userID} AND QuizID={quizID}"
-            database.execute(delCommand)
-            print(f"Executed command: {delCommand}")
-            database.commit()
-            command = f"INSERT INTO QuizSession(UserID, QuizID) VALUES ({userID}, {quizID})"
-
-            database.execute(command)
-            print(f"Executed command: {command}")
-            database.commit()
-
             rounds = []
             roundQuery = f"SELECT ID FROM round WHERE QuizID={quizID}"
-
 
             roundCursor = database.execute(roundQuery).fetchall()
             print(f"Executed command: {roundQuery}")
@@ -835,6 +822,25 @@ def create_app(test_config=None): #function that creates the app
                 timeCommand = f"UPDATE QuizSession SET StartTime={time.time()+10} WHERE ID={sessionId};"
                 database.execute(timeCommand)
                 print(f"Executed command: {timeCommand}")
+
+                #get id of quiz
+
+                quizCommand = f"SELECT QuizID FROM QuizSession WHERE ID={sessionId};"
+                quizId = database.execute(quizCommand).fetchone()[0]
+                print(f"Executed command: {quizCommand}")
+
+                #get lowest round id
+                idCommand = f"SELECT MIN(ID) FROM Round WHERE QuizID={quizId}"
+                roundId = database.execute(idCommand).fetchone()[0]
+                print(f"Executed command: {idCommand}")
+                print(roundId)
+
+                #create first round entry
+                roundStartCommand = f"INSERT INTO RoundSession(RoundID, SessionID, StartDT) VALUES ({roundId}, {sessionId}, {time.time()+10});"
+                database.execute(roundStartCommand)
+                print(f"Executed command: {roundStartCommand}")
+
+
                 database.commit()
                 response = {'authorised': 1, 'completed': 1}
 
@@ -845,5 +851,60 @@ def create_app(test_config=None): #function that creates the app
 
         return response
 
+    @app.route('/currentRound', methods=['POST'])
+    def getCurrentRound():
+        #Check if user is logged in
+        params = json.loads(request.data.decode())
+
+        try:
+            token = params['token']
+            sessionId = params['sessionId']
+        except:
+            token = ''
+            sessionId = ''
+
+        database = db.get_db()
+        sessionQuery = f"SELECT UserID FROM UserSession WHERE TOKEN='{token}';"
+        user = database.execute(sessionQuery).fetchone()
+        print(f"executed command: {sessionQuery}")
+
+        if user == None:
+            print("User not authorized")
+            response = {'authorised': 0}
+            responseCode = 401
+        else:
+            print(f"User authorised: {user[0]}")
+            #check if user is a member of the session
+
+            memberCommand = f"SELECT ID FROM QuizMember WHERE UserID={user[0]} AND SessionId={sessionId};"
+            print(f"Executed command: {memberCommand}")
+            memberId = database.execute(memberCommand).fetchone()[0]
+
+            if memberId != None:
+                #round order is in assecding ids
+
+                quizCommand = f"SELECT QuizID FROM QuizSession WHERE ID={sessionId};"
+                quizId = database.execute(quizCommand).fetchone()[0]
+                print(f"Executed command: {quizCommand}")
+
+                #the current round is the roundSession with the highest ID that has a start time
+                roundSessionCommand = f"SELECT MAX(ID) FROM RoundSession WHERE SessionId={sessionId} AND StartDT IS NOT NULL;"
+                roundSessionId = database.execute(roundSessionCommand).fetchone()[0]
+                print(f"Executed command: {roundSessionCommand}")
+
+                #Get round id from round session
+                roundCommand = f"SELECT Round.ID FROM Round JOIN RoundSession ON RoundSession.RoundID=Round.ID WHERE RoundSession.ID={roundSessionId};"
+                roundId = database.execute(roundCommand).fetchone()[0]
+                print(f"Executed command: {roundCommand}")
+
+                response = {"roundId": roundId}
+
+            else:
+                response = {"response": "Not in session"}
+
+        response = jsonify(response)
+        response.headers.add("Access-Control-Allow-Origin", "*")
+
+        return response
 
     return app

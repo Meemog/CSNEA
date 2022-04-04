@@ -1,4 +1,5 @@
 import React from 'react'
+import {RoundManager} from './playQuiz/roundManager.js'
 
 class Lobby extends React.Component {
   constructor(props){
@@ -9,6 +10,7 @@ class Lobby extends React.Component {
     this.sessionId = null;
     this.usernames = []
     this.titleText = "Looking for players";
+    this.isActive = true;
     this.startButton = (
       <span>
         <input type='button' value='Start' onClick={()=>{this.startGame()}}/>
@@ -141,8 +143,11 @@ class Lobby extends React.Component {
       this.titleText = `Starting in: ${numTimes}`
       this.setState( { state: this.state } )
       numTimes -= 1;
-      if (numTimes === 0){
+      if (numTimes === -1){
         window.clearInterval(loop)
+        this.content = <RoundManager SessionId={this.sessionId} />
+        this.isActive = false;
+        this.setState( { state: this.state } )
       }
     }, 1000)
   }
@@ -171,7 +176,8 @@ class Lobby extends React.Component {
   }
 
   render(){
-    return (
+    if (this.isActive){
+      this.content = (
       <div>
         <h1>{this.titleText}</h1>
         <span>
@@ -186,8 +192,11 @@ class Lobby extends React.Component {
           <p>{this.sessionCode}</p>
         </span>
       </div>
-    )
- }
+      )
+    }
+
+    return this.content
+  }
 }
 
 export { Lobby }
