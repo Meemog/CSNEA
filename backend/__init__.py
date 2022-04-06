@@ -62,158 +62,102 @@ def create_app(test_config=None): #function that creates the app
 
     #Actual API starts here
 
-    @app.route('/questions/<roundid>', methods=['GET', 'POST'])
+    @app.route('/questions/<roundid>', methods=['POST'])
     def quizQuestions(roundid):
-        if request.method == 'GET':
+        responseText = {'recieved': 1}
+        responseCode = 200
+        #get data from request
+        question = json.loads(request.data.decode())
+
+        try:
+            token = question['token']
+        except:
+            token = ''
+
+        database = db.get_db()
+
+        #verify identity
+        sessionQuery = f"SELECT UserID FROM UserSession WHERE Token='{token}';"
+        user = database.execute(sessionQuery).fetchone()
+        print(f"Executed command: {sessionQuery}")
+
+        if user == None:
+            print("User not authorized")
+            responseText = "Not logged in"
+            responseCode = 401
+
+
+        if responseCode == 200:
+            print(f"User authorised: {user}")
+            #extract data
             try:
-                int(roundid)
+                questionText = question['text']
+                answers = question['answers']
+                topic = question['topic']
+                difficulty = question['difficulty']
+                multipleChoice = question['multipleChoice']
             except:
-                abort(404)
-            database = db.get_db()
-
-            command = "SELECT Question.ID, Question.QuestionText, Question.MultipleChoice, Question.AuthorID FROM QuestionInRound INNER JOIN Question ON Question.ID=QuestionInRound.QuestionID WHERE RoundID=" + roundid + ";"
-            questions = database.execute(command).fetchall()
-            print(f"Executed command: {command}")
-            questionDict = {'authorised': 1}
-            count = 0
-
-            for row in questions:
-                questionID = row[0]
-                text = row[1]
-                multiChoiceBool = row[2]
-                authorID = row[3]
-                authorCommand = "SELECT Username FROM User WHERE ID=" + str(authorID) + ";"
-                author = database.execute(authorCommand).fetchone()
-                print(f"Executed command: {authorCommand}")
-
-                jsonToAdd = {
-                        'ID':questionID,
-                        'Text':text,
-                        'IsMultipleChoice':multiChoiceBool,
-                        'Author':author[0]
-                    }
-
-                if multiChoiceBool == 1:
-                    answerCommand = "SELECT ID, AnswerText FROM Answer WHERE QuestionID=" + str(questionID) + ";"
-                    answerDict = {}
-                    answers = database.execute(answerCommand).fetchall()
-                    print(f"Executed command: {answerCommand}")
-                    count2 = 0
-                    for item in answers:
-                        answerDict.update({count2:{
-                            'ID':item[0],
-                            'AnsText':item[1]
-                            }
-                        })
-                        count2 += 1
-
-                    jsonToAdd.update({'answers':answerDict})
+                responseCode = 422
+                responseText = "json in wrong format"
 
 
-                questionDict.update({str(count):jsonToAdd})
-                count += 1
-            response = questionDict
-
-            response = jsonify(response)
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            return response
-
-        elif request.method == 'POST':
-            responseText = {'recieved': 1}
-            responseCode = 200
-            #get data from request
-            question = json.loads(request.data.decode())
-
+        #add data to db
+        if responseCode == 200:
+            user = user[0]
+            values = f"('{questionText}', {user}, {topic}, {multipleChoice}, '{difficulty}')"
+            query = f"INSERT INTO Question(QuestionText, AuthorID, TopicID, MultipleChoice, Difficulty) VALUES {values};"
+            print(f"Executed command: {query}")
             try:
-                token = question['token']
-            except:
-                token = ''
-
-            database = db.get_db()
-
-            #verify identity
-            sessionQuery = f"SELECT UserID FROM UserSession WHERE Token='{token}';"
-            user = database.execute(sessionQuery).fetchone()
-            print(f"Executed command: {sessionQuery}")
-
-            if user == None:
-                print("User not authorized")
-                responseText = "Not logged in"
-                responseCode = 401
-
-
-            if responseCode == 200:
-                print(f"User authorised: {user}")
-                #extract data
-                try:
-                    questionText = question['text']
-                    answers = question['answers']
-                    topic = question['topic']
-                    difficulty = question['difficulty']
-                    multipleChoice = question['multipleChoice']
-                except:
-                    responseCode = 422
-                    responseText = "json in wrong format"
-
-
-            #add data to db
-            if responseCode == 200:
-                user = user[0]
-                values = f"('{questionText}', {user}, {topic}, {multipleChoice}, '{difficulty}')"
-                query = f"INSERT INTO Question(QuestionText, AuthorID, TopicID, MultipleChoice, Difficulty) VALUES {values};"
+                database.execute(query)
                 print(f"Executed command: {query}")
-                try:
-                    database.execute(query)
-                    print(f"Executed command: {query}")
-                    database.commit()
-                except:
-                    responseCode = 422
-                    responseText = "Couldn't write to the database"
-
-            if responseCode == 200:
-                ansQuery = "INSERT INTO Answer(QuestionID, AnswerText, Correct) VALUES "
-                idQuery = "SELECT MAX(ID) FROM Question;"
-                bigIdCursor = database.execute(idQuery).fetchone()
-                print(f"Executed command: {idQuery}")
-                for key in answers:
-                    text = answers[key]['ansText']
-                    correct = answers[key]['correct']
-                    ansQuery = ansQuery + f"({bigIdCursor[0]}, '{text}', {correct}),"
-                ansQuery = ansQuery[:-1]
-
-                try:
-                    database.execute(ansQuery)
-                    print(f"Executed command: {ansQuery}")
-                    database.commit()
-                    print(f"Executed command: {ansQuery}")
-                except:
-                    responseCode = 422
-                    responseText = "Couldn't write to the database"
-
-
-
-            #submit response
-            response = jsonify({'response': responseText})
-            response.headers.add('Access-Control-Allow-Origin', '*')
-
-            return(response, responseCode)
-
-
-    @app.route('/checkAnswers/<roundid>', methods=['GET', 'POST'])
-    def CheckAnswer(roundid): #expexts json in the response in the form {questionID: answer}
-        if request.method == 'POST':
-            try:
-                int(roundid)
+                database.commit()
             except:
-                abort(404)
-            database = db.get_db()
+                responseCode = 422
+                responseText = "Couldn't write to the database"
 
-            userAnswers = json.loads(request.data.decode())
+        if responseCode == 200:
+            ansQuery = "INSERT INTO Answer(QuestionID, AnswerText, Correct) VALUES "
+            idQuery = "SELECT MAX(ID) FROM Question;"
+            bigIdCursor = database.execute(idQuery).fetchone()
+            print(f"Executed command: {idQuery}")
+            for key in answers:
+                text = answers[key]['ansText']
+                correct = answers[key]['correct']
+                ansQuery = ansQuery + f"({bigIdCursor[0]}, '{text}', {correct}),"
+            ansQuery = ansQuery[:-1]
 
             try:
-                token = userAnswers['token']
+                database.execute(ansQuery)
+                print(f"Executed command: {ansQuery}")
+                database.commit()
+                print(f"Executed command: {ansQuery}")
+            except:
+                responseCode = 422
+                responseText = "Couldn't write to the database"
+
+
+
+        #submit response
+        response = jsonify({'response': responseText})
+        response.headers.add('Access-Control-Allow-Origin', '*')
+
+        return(response, responseCode)
+
+
+    @app.route('/submitAnswers', methods=['GET', 'POST'])
+    def CheckAnswer(roundid): #expects json in the response in the form {questionID: answer}
+        if request.method == 'POST':
+            database = db.get_db()
+            params = json.loads(request.data.decode())
+
+            try:
+                token = params['token']
+                sessionId = params['sessionId']
+                roundSessionId = params['roundSessionId']
             except:
                 token = ''
+                sessionId = ''
+                roundSessionId = ''
 
             #verify identity
             sessionQuery = f"SELECT UserID FROM UserSession WHERE Token='{token}';"
@@ -224,53 +168,150 @@ def create_app(test_config=None): #function that creates the app
                 print("User not authorized")
                 response = {'authorised': 0}
                 responseCode = 401
-                return (response, responseCode)
+            else:
+                #check that the user is a member of the session
+                memberCommand = f"SELECT ID FROM QuizMember WHERE SessionID={sessionId} AND UserID={user[0]}"
 
-            #gets the correct questions and answers from the round
-            command = "SELECT QuestionID FROM QuestionInRound WHERE RoundID=" + str(roundid) + ";"
-            rows = database.execute(command).fetchall()
-            print(f"Executed command: {command}")
-            toAdd = {}
+                memberId = database.execute(memberCommand).fetchone()
 
-            roundScore = 0
+                if memberId != None:
+                    validated = True
+                else:
+                    validated = False
 
-            for row in rows:
-                try: #selects the answers for all the questions in the current round
-                    questionID = str(row[0])
-                    answerCommand = "SELECT AnswerText FROM Answer WHERE questionID=" + questionID + " AND Correct=1;"
-                    correctAnswer = database.execute(answerCommand).fetchone()[0]
-                    print(f"Executed command: {answerCommand}")
-                    correct = (correctAnswer == userAnswers['answers'][questionID])
-                    toAdd.update({questionID: {
-                        'correctAnswer': correctAnswer,
-                        'userAnswer': userAnswers['answers'][questionID],
-                        'correct': correct
-                        }})
-                    if correct:
-                        roundScore += 1
-                except: #if the questions don't match up, a bad request error is returned
-                    response = jsonify({"error": "Unprocessable Entity",
-                        "recieved": userAnswers})
-                    response.headers.add('Access-Control-Allow-Origin', '*')
-                    return(response, 422)
+            if validated:
+                #check that there isn't already a round response table
+                memberId = memberId[0]
 
-            #submit score to roundSession
+                rResponseCommand = f"SELECT ID FROM RoundResponse WHERE QuizMemberID={memberId} AND RoundSessionID={roundSessionId}"
+                rResponseId = database.execute(rResponseCommand).fetchone()
+                print(f"Executed command: {rResponseCommand}")
+                if rResponseId != None:
 
-            #get QuizSession
-            sessionQuery = f"SELECT ID FROM QuizSession WHERE UserID={user} AND QuizID={userAnswers['quizID']};"
-            cursor = database.execute(sessionQuery).fetchone()
-            print(f"Executed command: {sessionQuery}")
-            sessionID = cursor[0]
+                    #make round response table that references the current round
+                    createResponseCommand = f"INSERT INTO RoundResponse(QuizMemberID, RoundSessionID, EndDT) VALUES {memberId}, {roundSessionId}, {time.time()};"
 
-            #round id stored in roundid
+                    database.execute(createResponseCommand)
+                    print(f"Executed command: {createResponseCommand}")
+                    database.commit()
 
-            #TODO: add score to session
+                    #get each question in the round
 
-            response = toAdd
+                    questionCommand = f"""
+                    SELECT Question.ID FROM Question
+                    INNER JOIN QuestionInRound ON QuestionInRound.QuestionID = Question.ID
+                    INNER JOIN Round ON Round.ID = QuestionInRound.RoundId
+                    INNER JOIN RoundSession ON RoundSession.RoundID = Round.ID
+                    WHERE RoundSession.ID = {roundSessionId}"""
 
+                    questionIds = database.execute(questionCommand).fetchall()
+
+                    #for each question:
+                        #check if there is a response to the question in the body
+                        #if there isn't the response should default to an empty string
+                        #submit each question response to the response table
+                        #get correct answer
+                        #compare the correct answer to the user's answer
+                    try:
+                        responses = params['responses']
+                    except:
+                        responses = ''
+
+                    responseArr = []
+                    for item in questionIds:
+                        responseArr.append(item[0])
+                    #FIXME
+
+
+                    #set the score value in the round response table
+
+
+                #return current round session
+                response = jsonify(response)
+                response.headers.add('Access-Control-Allow-Origin', '*')
+                return (response, 200) 
+
+    @app.route('/checkAnswers', methods=['POST'])
+    def checkAnswers():
+        if request.method == 'POST':
+            database = db.get_db()
+            params = json.loads(request.data.decode())
+
+            try:
+                token = params['token']
+                roundSessionId = params['roundSessionId']
+                sessionId = params['sessionId']
+            except:
+                token = ''
+                roundSessionId = ''
+                sessionId = ''
+
+            #verify identity
+            sessionQuery = f"SELECT UserID FROM UserSession WHERE Token='{token}';"
+            user = database.execute(sessionQuery).fetchone()[0]
+            print(f"Executed command {sessionQuery}")
+
+            if user == None:
+                print("User not authorized")
+                response = {'authorised': 0}
+                responseCode = 401
+            else:
+                #check that the user is a member of the session
+                memberCommand = f"SELECT ID FROM QuizMember WHERE SessionID={sessionId} AND UserID={user[0]}"
+
+                memberId = database.execute(memberCommand).fetchone()
+
+                if memberId != None:
+                    validated = True
+                else:
+                    validated = False
+
+            if validated:
+                #check if the round has an end time yet
+
+                #if it does return the user's score, the end time of the round, and the start time of the next round
+
+                #otherwise return that the round hasn't finished yet
+                pass
+
+    @app.route('/checkIfHost', methods=['POST'])
+    def checkHost():
+        if request.method == 'POST':
+            database = db.get_db()
+            params = json.loads(request.data.decode())
+
+            try:
+                token = params['token']
+                sessionId = params['sessionId']
+            except:
+                token = ''
+                sessionId = ''
+
+            #verify identity
+            sessionQuery = f"SELECT UserID FROM UserSession WHERE Token='{token}';"
+            user = database.execute(sessionQuery).fetchone()[0]
+            print(f"Executed command {sessionQuery}")
+
+            if user == None:
+                print("User not authorized")
+                response = {'authorised': 0, 'creator': 1}
+                responseCode = 401
+            else:
+                #check that the user is the creator of the session
+                creatorQuery = f"SELECT Creator FROM QuizSession WHERE ID={sessionId} AND Creator={user[0]}"
+
+                creator = database.execute(creatorQuery).fetchone()
+                if creator == None:
+                    response = {'authorised': 1, 'creator': 0}
+                else:
+                    response = {'authorised': 1, 'creator': 1}
             response = jsonify(response)
-            response.headers.add('Access-Control-Allow-Origin', '*')
-            return (response, 200) #returns in the form {questionID: {isCorrect, userAnswer, correctAnswer}}
+
+            response.headers.add("Access-Control-Allow-Origin", "*")
+
+            return response
+
+
 
     @app.route('/topics', methods=['GET'])  #routes /topics GET requests to this function
     def topics():
@@ -351,7 +392,6 @@ def create_app(test_config=None): #function that creates the app
             try:
                 database = db.get_db()
                 query = f"INSERT INTO Quiz(Generator, NumQuestions, Difficulty) VALUES ({author}, {numQuestions}, '{difficulty}');"
-                print(f"Executed command: {query}")
                 test = database.execute(query).fetchall()
                 print(f"Executed command: {query}")
                 database.commit()
@@ -381,7 +421,7 @@ def create_app(test_config=None): #function that creates the app
                 print(f"Processing round {i+1}:")
 
                 #create round
-                roundQuery = f"INSERT INTO Round(TopicID, QuizID, StartDT) VALUES ({allQuestions[i][1]}, {quizId}, null);"
+                roundQuery = f"INSERT INTO Round(TopicID, QuizID) VALUES ({allQuestions[i][1]}, {quizId});"
                 database.execute(roundQuery)
                 print(f"  Executed command: {roundQuery}")
 
@@ -897,8 +937,48 @@ def create_app(test_config=None): #function that creates the app
                 roundId = database.execute(roundCommand).fetchone()[0]
                 print(f"Executed command: {roundCommand}")
 
-                response = {"roundId": roundId}
+                command = f"SELECT Question.ID, Question.QuestionText, Question.MultipleChoice, Question.AuthorID FROM QuestionInRound INNER JOIN Question ON Question.ID=QuestionInRound.QuestionID WHERE RoundID={roundId}"
+                questions = database.execute(command).fetchall()
+                print(f"Executed command: {command}")
+                questionDict = {'authorised': 1}
+                count = 0
 
+                for row in questions:
+                    questionID = row[0]
+                    text = row[1]
+                    multiChoiceBool = row[2]
+                    authorID = row[3]
+                    authorCommand = "SELECT Username FROM User WHERE ID=" + str(authorID) + ";"
+                    author = database.execute(authorCommand).fetchone()
+                    print(f"Executed command: {authorCommand}")
+
+                    jsonToAdd = {
+                            'ID':questionID,
+                            'Text':text,
+                            'IsMultipleChoice':multiChoiceBool,
+                            'Author':author[0]
+                        }
+
+                    if multiChoiceBool == 1:
+                        answerCommand = "SELECT ID, AnswerText FROM Answer WHERE QuestionID=" + str(questionID) + ";"
+                        answerDict = {}
+                        answers = database.execute(answerCommand).fetchall()
+                        print(f"Executed command: {answerCommand}")
+                        count2 = 0
+                        for item in answers:
+                            answerDict.update({count2:{
+                                'ID':item[0],
+                                'AnsText':item[1]
+                                }
+                            })
+                            count2 += 1
+
+                        jsonToAdd.update({'answers':answerDict})
+
+
+                    questionDict.update({str(count):jsonToAdd})
+                    count += 1
+                response = {'questions':questionDict, 'currentround': roundSessionId}
             else:
                 response = {"response": "Not in session"}
 

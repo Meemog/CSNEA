@@ -7,8 +7,10 @@ class JoinForm extends React.Component {
     this.content = (
       <div>
         <h1>Enter Code:</h1>
-        <input id="Code" style={{textTransform:'uppercase'}}/>
-        <input type="Button" value="Submit" readOnly onClick={() => {this.submit()}} />
+        <span>
+          <input id="Code" style={{textTransform:'uppercase'}}/>
+          <input type="Button" value="Submit" readOnly onClick={() => {this.submit()}} />
+        </span>
       </div>
     )
   }

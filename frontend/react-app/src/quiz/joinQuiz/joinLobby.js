@@ -137,7 +137,7 @@ class JoinLobby extends React.Component {
       numTimes -= 1;
       if (numTimes === -1){
         window.clearInterval(loop)
-        this.content = <RoundManager SessionId='0' />
+        this.content = <RoundManager SessionId={this.sessionId} />
         this.isActive = false;
         this.setState( { state: this.state } )
       }

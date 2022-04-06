@@ -83,6 +83,7 @@ CREATE TABLE RoundSession (
   RoundID INTEGER,
   SessionID INTEGER,
   StartDT INTEGER,
+  EndDT INTEGER,
   FOREIGN KEY (RoundID) REFERENCES Round(ID),
   FOREIGN KEY (SessionID) REFERENCES QuizSession(ID)
 );
