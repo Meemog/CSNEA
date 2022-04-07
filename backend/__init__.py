@@ -145,19 +145,15 @@ def create_app(test_config=None): #function that creates the app
 
 
     @app.route('/submitAnswers', methods=['GET', 'POST'])
-    def CheckAnswer(roundid): #expects json in the response in the form {questionID: answer}
+    def CheckAnswer():
         if request.method == 'POST':
             database = db.get_db()
             params = json.loads(request.data.decode())
 
-            try:
-                token = params['token']
-                sessionId = params['sessionId']
-                roundSessionId = params['roundSessionId']
-            except:
-                token = ''
-                sessionId = ''
-                roundSessionId = ''
+            token = params['token']
+            sessionId = params['sessionId']
+            roundSessionId = params['roundSessionId']
+            answers = params['answers'] #expects json in the response in the form {questionID: answer}
 
             #verify identity
             sessionQuery = f"SELECT UserID FROM UserSession WHERE Token='{token}';"
@@ -186,14 +182,18 @@ def create_app(test_config=None): #function that creates the app
                 rResponseCommand = f"SELECT ID FROM RoundResponse WHERE QuizMemberID={memberId} AND RoundSessionID={roundSessionId}"
                 rResponseId = database.execute(rResponseCommand).fetchone()
                 print(f"Executed command: {rResponseCommand}")
-                if rResponseId != None:
 
-                    #make round response table that references the current round
-                    createResponseCommand = f"INSERT INTO RoundResponse(QuizMemberID, RoundSessionID, EndDT) VALUES {memberId}, {roundSessionId}, {time.time()};"
+                if rResponseId == None:
+                    #make round response entry that references the current round
+                    createResponseCommand = f"INSERT INTO RoundResponse(QuizMemberID, RoundSessionID, EndDT) VALUES ({memberId}, {roundSessionId}, {time.time()});"
 
-                    database.execute(createResponseCommand)
                     print(f"Executed command: {createResponseCommand}")
+                    database.execute(createResponseCommand)
                     database.commit()
+
+                    #get ID of created entry
+                    rResponseCommand = f"SELECT ID FROM RoundResponse WHERE QuizMemberID={memberId} AND RoundSessionID={roundSessionId}"
+                    rResponseId = database.execute(rResponseCommand).fetchone()[0]
 
                     #get each question in the round
 
@@ -202,34 +202,155 @@ def create_app(test_config=None): #function that creates the app
                     INNER JOIN QuestionInRound ON QuestionInRound.QuestionID = Question.ID
                     INNER JOIN Round ON Round.ID = QuestionInRound.RoundId
                     INNER JOIN RoundSession ON RoundSession.RoundID = Round.ID
-                    WHERE RoundSession.ID = {roundSessionId}"""
+                    WHERE RoundSession.ID = {roundSessionId}
+                    ORDER BY Question.ID ASC;"""
 
                     questionIds = database.execute(questionCommand).fetchall()
 
                     #for each question:
-                        #check if there is a response to the question in the body
-                        #if there isn't the response should default to an empty string
-                        #submit each question response to the response table
                         #get correct answer
                         #compare the correct answer to the user's answer
-                    try:
-                        responses = params['responses']
-                    except:
-                        responses = ''
+                        #submit each question response to the response table
+                        #if there isn't enough responses, the last one should default to an empty string, keeping going if there still isn't enough
 
                     responseArr = []
-                    for item in questionIds:
-                        responseArr.append(item[0])
-                    #FIXME
+                    for i in range(len(questionIds)):
+                        questionId = questionIds[i][0]
+                        userAnswer = answers[str(i)]
+                        correctAnswerCommand = f"""
+                            SELECT AnswerText
+                            FROM Answer
+                            WHERE
+                                QuestionID={questionId} AND
+                                Correct=1;
+                            """
 
+                        correctAnswer = database.execute(correctAnswerCommand).fetchone()[0]
+                        correct = correctAnswer == userAnswer
 
-                    #set the score value in the round response table
+                        userResponseCommand = f"""
+                            INSERT INTO Response (Answer, RoundResponseID, QuestionID, Correct)
+                            VALUES ("{userAnswer}", {rResponseId}, {questionId}, {correct});
+                            """
 
+                        database.execute(userResponseCommand)
+                        print(f"Executed command: {userResponseCommand}")
+                        database.commit()
 
-                #return current round session
-                response = jsonify(response)
-                response.headers.add('Access-Control-Allow-Origin', '*')
-                return (response, 200) 
+                    response = {"ok": 1, "response": "Submitted"}
+
+                    #calculate score
+                    #get number of questions
+                    questionCommand = f"""
+                        SELECT Response.ID
+                        FROM Response
+                        JOIN RoundResponse ON RoundResponse.ID = Response.RoundResponseID
+                        WHERE
+                            RoundResponse.QuizMemberId = {memberId}
+                        """
+                    questionResponses = database.execute(questionCommand).fetchall()
+                    numQuestions = len(questionResponses)
+
+                    #get number of questions answered correctly
+                    correctCommand = f"""
+                        SELECT Response.ID
+                        FROM Response
+                        JOIN RoundResponse ON RoundResponse.ID = Response.RoundResponseID
+                        WHERE
+                            RoundResponse.QuizMemberId = {memberId} AND
+                            Response.Correct = 1;
+                        """
+                    correctResponses = database.execute(correctCommand).fetchall()
+                    numCorrect = len(correctResponses)
+                    #get the time taken (time taken = time submitted - time the round started
+
+                    roundStartCommand = f"""
+                        SELECT StartDT
+                        FROM RoundSession
+                        WHERE ID = {roundSessionId};
+                        """
+                    endTime = database.execute(roundStartCommand).fetchone()
+
+                    responseTimeCommand = f"""
+                        SELECT EndDT
+                        FROM RoundResponse
+                        WHERE ID = {rResponseId}
+                        """
+                    responseTimestamp = database.execute(responseTimeCommand).fetchone()[0]
+
+                    timeTaken = responseTimestamp - endTime[0]
+
+                    #absolute score = %correct * (60 * numQuestions - time taken)
+                    #relative score = absolute score / highest possible score * 1000
+
+                    absScore = (numCorrect/numQuestions) * (60 * numQuestions - timeTaken)
+                    relScore = round((absScore/(60 * numQuestions)) * 1000)
+
+                    if relScore < 0:
+                        relScore = 0
+
+                    #set score in RoundResponse
+                    scoreCommand = f"""
+                        UPDATE RoundResponse
+                        SET Score = {relScore}
+                        WHERE ID = {rResponseId};
+                        """
+                    database.execute(scoreCommand)
+                    database.commit()
+
+                    #add score to total score
+
+                    tScoreCommand = f"SELECT Score FROM QuizMember WHERE ID={memberId}"
+                    totalScore = database.execute(tScoreCommand).fetchone()[0]
+
+                    addScoreCommand = f"UPDATE QuizMember SET Score = {totalScore + relScore} WHERE ID = {memberId}"
+                    database.execute(addScoreCommand)
+                    database.commit()
+
+                else:
+                    response = {"response": "already responded"}
+
+                #check to see if everyone has submitted a response
+
+                #get number of quiz members in the current quiz session
+                memberCommand = f"""
+                    SELECT QuizMember.ID
+                    FROM QuizMember
+                    JOIN QuizSession ON QuizMember.SessionID = QuizSession.ID
+                    WHERE QuizSession.ID = {sessionId};
+                """
+
+                members = database.execute(memberCommand).fetchall()
+
+                numMembers = len(members)
+
+                #get number of responses for this round
+
+                responseCommand = f"""
+                    SELECT RoundResponse.ID
+                    FROM RoundResponse
+                    JOIN RoundSession ON RoundSession.ID = RoundResponse.RoundSessionID
+                    WHERE RoundSession.ID = {roundSessionId}
+                    """
+                responses = database.execute(responseCommand).fetchall()
+                print(f"Executed command: {responseCommand}")
+
+                numResponses = len(responses)
+
+                print(numResponses, numMembers)
+
+                if numResponses == numMembers:
+                    roundEndCommand = f"""
+                        UPDATE RoundSession
+                        SET EndDT = {time.time()}
+                        WHERE ID={roundSessionId}
+                        """
+                    database.execute(roundEndCommand)
+                    database.commit()
+
+            response = jsonify(response)
+            response.headers.add('Access-Control-Allow-Origin', '*')
+            return (response, 200)
 
     @app.route('/checkAnswers', methods=['POST'])
     def checkAnswers():
@@ -254,7 +375,6 @@ def create_app(test_config=None): #function that creates the app
             if user == None:
                 print("User not authorized")
                 response = {'authorised': 0}
-                responseCode = 401
             else:
                 #check that the user is a member of the session
                 memberCommand = f"SELECT ID FROM QuizMember WHERE SessionID={sessionId} AND UserID={user[0]}"
@@ -267,12 +387,49 @@ def create_app(test_config=None): #function that creates the app
                     validated = False
 
             if validated:
-                #check if the round has an end time yet
+                #check if the round session has an end time yet
+                roundSessionCommand = f"""
+                    SELECT EndDT
+                    FROM RoundSession
+                    WHERE ID={roundSessionId}
+                """
+                endTime = database.execute(roundSessionCommand).fetchone()
+                print(f"Executed command: {roundSessionCommand}")
+                #if it does return the user's score
+                if endTime[0] != None:
+                    #get user's total score
+                    totalScoreCommand = f"SELECT Score FROM QuizMember WHERE ID = {memberId[0]};"
+                    totalScore = database.execute(totalScoreCommand).fetchone()[0]
+                    #get user's round score
+                    roundScoreCommand = f"""
+                        SELECT Score
+                        FROM RoundResponse
+                        WHERE RoundSessionID = {roundSessionId} AND
+                        QuizMemberID = {memberId[0]};
+                    """
+                    roundScore = database.execute(roundScoreCommand).fetchone()[0]
 
-                #if it does return the user's score, the end time of the round, and the start time of the next round
+                    #get top user's score
+                    highScoreCommand = f"SELECT UserID, MAX(Score) FROM QuizMember WHERE SessionID = {sessionId}"
+                    highScoreCursor = database.execute(highScoreCommand).fetchone()
 
-                #otherwise return that the round hasn't finished yet
-                pass
+                    topUserCommand = f"SELECT Username FROM User WHERE ID={highScoreCursor[0]}"
+                    topUser = database.execute(topUserCommand).fetchone()[0]
+
+
+                    highScore = highScoreCursor[1]
+
+
+                    response = {"authorised": 1, "ended": 1, "score": roundScore, "topScore": highScore, "topUser": topUser}
+                else:
+                    response = {"authorised": 1, "ended": 0}
+            else:
+                response = {"authorised": 0}
+        response = jsonify(response)
+        response.headers.add("Access-Control-Allow-Origin", "*")
+
+        return response
+
 
     @app.route('/checkIfHost', methods=['POST'])
     def checkHost():
@@ -294,7 +451,7 @@ def create_app(test_config=None): #function that creates the app
 
             if user == None:
                 print("User not authorized")
-                response = {'authorised': 0, 'creator': 1}
+                response = {'authorised': 0, 'creator': 0}
                 responseCode = 401
             else:
                 #check that the user is the creator of the session
@@ -311,7 +468,39 @@ def create_app(test_config=None): #function that creates the app
 
             return response
 
+    @app.route('/startNextRound', methods=['POST'])
+    def nextRound(): #Adds a start time to the next round
+        if request.method == 'POST':
+            database = db.get_db()
+            params = json.loads(request.data.decode())
 
+            try:
+                token = params['token']
+                sessionId = params['sessionId']
+            except:
+                token = ''
+                sessionId = ''
+
+            #verify identity
+            sessionQuery = f"SELECT UserID FROM UserSession WHERE Token='{token}';"
+            user = database.execute(sessionQuery).fetchone()[0]
+            print(f"Executed command {sessionQuery}")
+
+            if user == None:
+                print("User not authorized")
+                response = {'authorised': 0}
+                #check that the user is the creator of the session
+                creatorQuery = f"SELECT Creator FROM QuizSession WHERE ID={sessionId} AND Creator={user[0]}"
+
+                creator = database.execute(creatorQuery).fetchone()
+                if creator == None:
+                    response = {'authorised': 0}
+                else:
+                    #get next roundSession in QuizSession that doesn't have a start time, and add one
+                    pass
+
+
+        return response
 
     @app.route('/topics', methods=['GET'])  #routes /topics GET requests to this function
     def topics():
@@ -677,10 +866,15 @@ def create_app(test_config=None): #function that creates the app
                 'sessionCode': sessionCode}
 
             #Add author to session
-            memberCommand = f"INSERT INTO QuizMember (UserID, SessionID) VALUES ({user[0]}, {sessionId})"
+            memberCommand = f"INSERT INTO QuizMember (UserID, SessionID, Score) VALUES ({user[0]}, {sessionId}, 0)"
             database.execute(memberCommand)
             database.commit()
             print(f"Executed command: {memberCommand}")
+
+            #create round sessions without start times
+            #get each round
+
+            roundCommand = f"SELECT ID FROM Round WHERE QuizID = {quizId}"
 
         response = jsonify(response)
         response.headers.add('Access-Control-Allow-Origin', '*')
@@ -718,7 +912,7 @@ def create_app(test_config=None): #function that creates the app
                 response = {"authorised": 1, "Response": "Incorrect code"}
             else:
                 #add user to session
-                memberCommand = f"INSERT INTO QuizMember (UserID, SessionID) VALUES ({user[0]}, {sessionId[0]})"
+                memberCommand = f"INSERT INTO QuizMember (UserID, SessionID, Score) VALUES ({user[0]}, {sessionId[0]}, 0)"
                 database.execute(memberCommand)
                 print(f"Executed command: {memberCommand}")
                 database.commit()
@@ -729,7 +923,7 @@ def create_app(test_config=None): #function that creates the app
 
 
     @app.route('/getMembers', methods=['POST'])
-    def getMebers():
+    def getMembers():
         params = json.loads(request.data.decode())
 
         try:
@@ -863,22 +1057,7 @@ def create_app(test_config=None): #function that creates the app
                 database.execute(timeCommand)
                 print(f"Executed command: {timeCommand}")
 
-                #get id of quiz
-
-                quizCommand = f"SELECT QuizID FROM QuizSession WHERE ID={sessionId};"
-                quizId = database.execute(quizCommand).fetchone()[0]
-                print(f"Executed command: {quizCommand}")
-
-                #get lowest round id
-                idCommand = f"SELECT MIN(ID) FROM Round WHERE QuizID={quizId}"
-                roundId = database.execute(idCommand).fetchone()[0]
-                print(f"Executed command: {idCommand}")
-                print(roundId)
-
-                #create first round entry
-                roundStartCommand = f"INSERT INTO RoundSession(RoundID, SessionID, StartDT) VALUES ({roundId}, {sessionId}, {time.time()+10});"
-                database.execute(roundStartCommand)
-                print(f"Executed command: {roundStartCommand}")
+                #add a start time to the first roundSession entry
 
 
                 database.commit()

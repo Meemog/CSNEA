@@ -119,6 +119,7 @@ CREATE TABLE Response (
   Answer TEXT,
   RoundResponseID INTEGER,
   QuestionID INTEGER,
+  Correct BOOLEAN,
   FOREIGN KEY (QuestionID) REFERENCES Question(ID),
   FOREIGN KEY (RoundResponseID) REFERENCES RoundResponse(ID)
 );

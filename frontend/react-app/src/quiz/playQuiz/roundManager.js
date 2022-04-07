@@ -6,6 +6,7 @@ class RoundManager extends React.Component {
     this.sessionId = props['SessionId']
     this.currentRound = '-1'
     this.questions = <br />
+    this.questionDict = {} //TODO: make this work
     this.getQuestions()
     this.content = <br />
     this.waitingArea = (
@@ -16,16 +17,144 @@ class RoundManager extends React.Component {
     this.numQuestions = 0
   }
 
-  getAnswers(){
-    for (let i=0; i<this.numQuestions; i++){
-      let tempElement = document.getElementById(`question${i}`)
-      console.log(tempElement.value)
+  getValueFromRadio(name){
+    let btns = document.getElementsByName(name);
+    let answer = ''
+    for (let i=0; i<btns.length; i++){
+      if (btns[i].checked){
+        answer = btns[i].value;
+      }
     }
+    return answer
+  }
+
+  getAnswers(){
+    console.log(this.questionDict);
+    let numQuestions = Object.keys(this.questionDict).length
+    let userAnsArr = {}
+    for (let i=0; i<numQuestions; i++){
+      if (this.questionDict[i].multiChoice){
+        userAnsArr[i] = this.getValueFromRadio(this.questionDict[i].id)
+      }else{
+        userAnsArr[i] = document.getElementById(this.questionDict[i].id).value
+      }
+    }
+    return userAnsArr
   }
 
   submit(){
-    this.getAnswers()
+    let answers = this.getAnswers()
 
+    let submitInit = { method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain',
+        },
+      cache: 'default',
+      mode: 'cors',
+      body: JSON.stringify({
+        "token": this.getCookie('token'),
+        "sessionId": this.sessionId,
+        "roundSessionId":this.currentRound,
+        "answers": answers
+      })
+    }
+
+    let submitRequest = new Request(("http://127.0.0.1:5000/submitAnswers"), submitInit);
+    const submitPromise = fetch(submitRequest);
+
+    submitPromise
+      .then((response) => {
+        this.content = this.waitingArea
+        this.setState({state: this.state})
+        this.startSearchingForScore()
+      })
+  }
+
+  startSearchingForScore(){
+    setInterval(() => {
+      console.log("Checking score")
+      let checkInit = { method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain',
+          },
+        cache: 'default',
+        mode: 'cors',
+        body: JSON.stringify({
+          "token": this.getCookie('token'),
+          "sessionId": this.sessionId,
+          "roundSessionId":this.currentRound,
+        })
+      }
+
+      let checkRequest = new Request(("http://127.0.0.1:5000/checkAnswers"), checkInit);
+      let checkResponse = fetch(checkRequest);
+
+      checkResponse
+        .then((cResponse) => cResponse.json())
+        .then((cData) => {
+          if (cData['ended']){
+
+            let hostInit = { method: 'POST',
+              headers: {
+                'Content-Type': 'text/plain',
+                },
+              cache: 'default',
+              mode: 'cors',
+              body: JSON.stringify({
+                "token": this.getCookie('token'),
+                "sessionId": this.sessionId,
+                "roundSessionId":this.currentRound,
+              })
+            }
+
+            let hostRequest = new Request(("http://127.0.0.1:5000/checkIfHost"), hostInit);
+            let hostResponse = fetch(hostRequest);
+            hostResponse
+              .then((response) => response.json())
+              .then((data) => {
+                let nextRoundButton = <br />
+                if (data['creator']){
+                  nextRoundButton = (
+                    <span>
+                      <input type="Button" value="Next round" onClick={() => {this.startNextRound()}}/>
+                    </span>
+                  )
+                }
+
+                this.clearAllIntervals()
+                this.content = (
+                  <div>
+                    <h1>Scores:</h1>
+                    <span>
+                      <p>Your score:</p>
+                      {cData['score']}
+                    </span>
+                    <span>
+                      <p>Highest score so far:</p>
+                      {cData['topUser']}: {cData['topScore']}
+                    </span>
+                    {nextRoundButton}
+                  </div>
+                )
+                this.setState({state: this.state})
+              })
+          }
+        })
+    }, 5000
+    )
+  }
+
+  checkIfNextRoundStarted(){
+  }
+
+  startNextRound(){
+  }
+
+  clearAllIntervals(){
+    const interval_id = window.setInterval(function(){}, Number.MAX_SAFE_INTEGER);
+    for (let i = 1; i < interval_id; i++) {
+      window.clearInterval(i);
+    }
   }
 
   getQuestions(){
@@ -44,15 +173,13 @@ class RoundManager extends React.Component {
     roundPromise
       .then((response) => response.json())
       .then((data) => {
-        console.log(data)
-        this.currentRound = data.currentRound
+        this.currentRound = data.currentround
         this.renderQuestions(data.questions)
       })
   }
 
   renderQuestions(questionObject){
     let renderedQuestions = []
-    console.log(questionObject)
     let numQuestions = Object.keys(questionObject).length-1
     for (let i=0; i<numQuestions; i++){
       if (questionObject[i].IsMultipleChoice){
@@ -77,6 +204,7 @@ class RoundManager extends React.Component {
 
   renderNormal(question, id){
     let questionText = question.Text
+    this.questionDict[id] = {"multiChoice": 0, "id":`question${id}`}
     return(
       <span>
         <h2>{questionText}</h2>
@@ -89,10 +217,11 @@ class RoundManager extends React.Component {
     let questionText = question.Text
 
     let answers = []
+    this.questionDict[id] = {"multiChoice": 1, "id":`question${id}`}
     for (let j=0; j<Object.keys(question.answers).length; j++){
       answers.push(
         <span>
-          <input type="Radio" id={`answer${id}${j}`} name={`question${id}`} />
+          <input type="Radio" name={`question${id}`} value={question.answers[j].AnsText}/>
           <label>{question.answers[j].AnsText}</label>
         </span>
       )
