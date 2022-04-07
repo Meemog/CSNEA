@@ -116,17 +116,18 @@ class RoundManager extends React.Component {
                 if (data['creator']){
                   nextRoundButton = (
                     <span>
-                      <input type="Button" value="Next round" onClick={() => {this.startNextRound()}}/>
+                      <input type="Button" value="start next round" onClick={() => {this.startNextRound()}}/>
                     </span>
                   )
                 }
-
                 this.clearAllIntervals()
                 this.content = (
                   <div>
                     <h1>Scores:</h1>
                     <span>
-                      <p>Your score:</p>
+                      <p>Your total score:</p>
+                      {cData['totalScore']}
+                      <p>Your score this round</p>
                       {cData['score']}
                     </span>
                     <span>
@@ -137,6 +138,7 @@ class RoundManager extends React.Component {
                   </div>
                 )
                 this.setState({state: this.state})
+                this.checkIfNextRoundStarted()
               })
           }
         })
@@ -145,9 +147,122 @@ class RoundManager extends React.Component {
   }
 
   checkIfNextRoundStarted(){
+    setInterval(() => {
+      console.log("Checking to see if the next round has started")
+      let isNextRoundInit = { method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain',
+          },
+        cache: 'default',
+        mode: 'cors',
+        body: JSON.stringify({'token': this.getCookie('token'), "sessionId": this.sessionId})
+      }
+
+      let isNextRoundRequest = new Request(("http://127.0.0.1:5000/nextRoundStarted"), isNextRoundInit);
+      let isNextRoundPromise = fetch(isNextRoundRequest);
+
+      isNextRoundPromise
+        .then((response) => response.json())
+        .then((data) => {
+          if(data['gameOver']){
+            this.processGameOver()
+          }else{
+            if(data['started']){
+              const currentDate = new Date();
+              const timestamp = currentDate.getTime()/1000;
+              console.log(timestamp)
+              console.log(data['time'])
+              const timeToStart = data['time'] - timestamp
+              console.log(`Next round starts in: ${timeToStart}`)
+              this.wait(timeToStart - 5)
+            }else{
+              console.log('not started')
+            }
+          }
+        })
+    }, 5000)
+  }
+
+  processGameOver(){
+    this.clearAllIntervals()
+
+    let scoreInit = { method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain',
+        },
+      cache: 'default',
+      mode: 'cors',
+      body: JSON.stringify({'token': this.getCookie('token'), "sessionId": this.sessionId})
+    }
+
+    let scoreRequest = new Request(("http://127.0.0.1:5000/getScores"), scoreInit);
+    let scorePromise = fetch(scoreRequest);
+
+    scorePromise
+      .then((response) => response.json())
+      .then((data) => {
+        console.log(data)
+        let scores = []
+        for (const [key] of Object.keys(data)){
+          scores.push(
+            <p>{data[key].username}: {data[key].score}</p>
+          )
+        }
+        this.content = (
+          <div>
+            <h1>Scores</h1>
+            <span>
+              {scores}
+            </span>
+          </div>
+        )
+        this.setState({state: this.state})
+      })
+  }
+
+  wait(waitTime){
+    this.clearAllIntervals()
+    console.log(waitTime * 1000)
+    setTimeout(() => {this.countdown()}, Math.floor(waitTime * 1000))
+  }
+
+  countdown(){
+    let numTimes = 5
+    let loop = setInterval(() => {
+      console.log(numTimes);
+      let titleText = `Next round in: ${numTimes}`
+      this.content = (
+        <div>
+          <h1>{titleText}</h1>
+        </div>
+      )
+      this.setState( { state: this.state } )
+      numTimes -= 1;
+      if (numTimes === -1){
+        window.clearInterval(loop)
+        this.getQuestions()
+      }
+    }, 1000)
   }
 
   startNextRound(){
+    this.content = (
+      <div>
+        <h1>Starting next round</h1>
+      </div>
+    )
+    this.setState({state: this.state});
+    let nextRoundInit = { method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain',
+        },
+      cache: 'default',
+      mode: 'cors',
+      body: JSON.stringify({'token': this.getCookie('token'), "sessionId": this.sessionId})
+    }
+
+    let nextRoundRequest = new Request(("http://127.0.0.1:5000/startNextRound"), nextRoundInit);
+    fetch(nextRoundRequest);
   }
 
   clearAllIntervals(){

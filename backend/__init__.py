@@ -420,7 +420,7 @@ def create_app(test_config=None): #function that creates the app
                     highScore = highScoreCursor[1]
 
 
-                    response = {"authorised": 1, "ended": 1, "score": roundScore, "topScore": highScore, "topUser": topUser}
+                    response = {"authorised": 1, "ended": 1, "totalScore": totalScore, "score": roundScore, "topScore": highScore, "topUser": topUser}
                 else:
                     response = {"authorised": 1, "ended": 0}
             else:
@@ -489,6 +489,7 @@ def create_app(test_config=None): #function that creates the app
             if user == None:
                 print("User not authorized")
                 response = {'authorised': 0}
+            else:
                 #check that the user is the creator of the session
                 creatorQuery = f"SELECT Creator FROM QuizSession WHERE ID={sessionId} AND Creator={user[0]}"
 
@@ -497,8 +498,24 @@ def create_app(test_config=None): #function that creates the app
                     response = {'authorised': 0}
                 else:
                     #get next roundSession in QuizSession that doesn't have a start time, and add one
-                    pass
+                    rSessionCommand = f"SELECT MIN(ID) FROM RoundSession WHERE SessionID = {sessionId} AND StartDT IS NULL;"
+                    rSessionId = database.execute(rSessionCommand).fetchone()[0]
 
+                    if rSessionId == None:
+                        #set end time in QuizSession table
+                        endSessionCommand = f"UPDATE QuizSession SET EndDT = {time.time()} WHERE ID = {sessionId}"
+                        database.execute(endSessionCommand)
+                        database.commit()
+                        response = {'authorised': 1}
+                    else:
+                        startTimeCommand = f"UPDATE RoundSession SET StartDT = {time.time() + 10} WHERE ID = {rSessionId};"
+
+                        database.execute(startTimeCommand)
+                        database.commit()
+                        response = {'authorised': 1}
+
+        response = jsonify(response)
+        response.headers.add("Access-Control-Allow-Origin", "*")
 
         return response
 
@@ -874,7 +891,17 @@ def create_app(test_config=None): #function that creates the app
             #create round sessions without start times
             #get each round
 
-            roundCommand = f"SELECT ID FROM Round WHERE QuizID = {quizId}"
+            roundCommand = f"SELECT ID FROM Round WHERE QuizID = {params['quizId']}"
+
+            rounds = database.execute(roundCommand).fetchall()
+            for item in rounds:
+                sessionCommand = f"""
+                    INSERT INTO RoundSession (RoundID, SessionID)
+                    VALUES({item[0]}, {sessionId});
+                """
+                database.execute(sessionCommand)
+
+            database.commit()
 
         response = jsonify(response)
         response.headers.add('Access-Control-Allow-Origin', '*')
@@ -1057,8 +1084,13 @@ def create_app(test_config=None): #function that creates the app
                 database.execute(timeCommand)
                 print(f"Executed command: {timeCommand}")
 
-                #add a start time to the first roundSession entry
+                #get first roundSession entry
+                rSessionCommand = f"SELECT MIN(ID) FROM RoundSession WHERE SessionID = {sessionId};"
+                firstSession = database.execute(rSessionCommand).fetchone()[0]
 
+                #add a start time to the first roundSession entry
+                session1Command = f"UPDATE RoundSession SET StartDT = {time.time() + 10} WHERE ID = {firstSession};"
+                database.execute(session1Command)
 
                 database.commit()
                 response = {'authorised': 1, 'completed': 1}
@@ -1069,6 +1101,60 @@ def create_app(test_config=None): #function that creates the app
         response.headers.add("Access-Control-Allow-Origin", "*")
 
         return response
+
+    @app.route('/nextRoundStarted', methods=['POST'])
+    def getRoundStarted():
+        #Check if user is logged in
+        params = json.loads(request.data.decode())
+
+        try:
+            token = params['token']
+            sessionId = params['sessionId']
+        except:
+            token = ''
+            sessionId = ''
+
+        database = db.get_db()
+        sessionQuery = f"SELECT UserID FROM UserSession WHERE TOKEN='{token}';"
+        user = database.execute(sessionQuery).fetchone()
+        print(f"executed command: {sessionQuery}")
+
+        if user == None:
+            print("User not authorized")
+            response = {'authorised': 0}
+            responseCode = 401
+        else:
+            print(f"User authorised: {user[0]}")
+            #check if user is a member of the session
+
+            memberCommand = f"SELECT ID FROM QuizMember WHERE UserID={user[0]} AND SessionId={sessionId};"
+            print(f"Executed command: {memberCommand}")
+            memberId = database.execute(memberCommand).fetchone()[0]
+
+            if memberId != None:
+                #check if game is over
+
+                hasEndedCommand = f"SELECT EndDT FROM QuizSession WHERE ID = {sessionId};"
+                hasEnded = database.execute(hasEndedCommand).fetchone()
+
+                if hasEnded[0] == None:
+                    currentSessionCommand = f"SELECT MAX(ID), StartDT, EndDT FROM RoundSession WHERE SessionID = {sessionId} AND StartDT IS NOT NULL;"
+
+                    currentSession = database.execute(currentSessionCommand).fetchone()
+                    if currentSession[2] != None:
+                        response = {"started": 0, "gameOver": 0}
+                    else:
+                        response = {"started": 1, 'time': currentSession[1], "gameOver": 0}
+                else:
+                    response = {"started": 0, "gameOver": 1}
+
+        print(response)
+
+        response = jsonify(response)
+        response.headers.add("Access-Control-Allow-Origin", "*")
+
+        return response
+
 
     @app.route('/currentRound', methods=['POST'])
     def getCurrentRound():
@@ -1161,6 +1247,59 @@ def create_app(test_config=None): #function that creates the app
             else:
                 response = {"response": "Not in session"}
 
+        response = jsonify(response)
+        response.headers.add("Access-Control-Allow-Origin", "*")
+
+        return response
+
+    @app.route('/getScores', methods=['POST'])
+    def getScores():
+        #Check if user is logged in
+        params = json.loads(request.data.decode())
+
+        try:
+            token = params['token']
+            sessionId = params['sessionId']
+        except:
+            token = ''
+            sessionId = ''
+
+        database = db.get_db()
+        sessionQuery = f"SELECT UserID FROM UserSession WHERE TOKEN='{token}';"
+        user = database.execute(sessionQuery).fetchone()
+        print(f"executed command: {sessionQuery}")
+
+        if user == None:
+            print("User not authorized")
+            response = {'authorised': 0}
+        else:
+            print(f"User authorised: {user[0]}")
+            #check if user is a member of the session
+
+            memberCommand = f"SELECT ID FROM QuizMember WHERE UserID={user[0]} AND SessionId={sessionId};"
+            print(f"Executed command: {memberCommand}")
+            memberId = database.execute(memberCommand).fetchone()[0]
+
+            if memberId != None:
+                #get scores
+                scoreCommand = f"""
+                    SELECT User.Username, QuizMember.ID, QuizMember.Score
+                    FROM QuizMember
+                    JOIN User ON User.ID = QuizMember.UserID
+                    WHERE SessionID = {sessionId}
+                    ORDER BY QuizMember.Score DESC;
+                """
+
+                scores = database.execute(scoreCommand).fetchall()
+
+
+                #format in dictionary
+                scoreDict = {}
+                i = 0
+                for item in scores:
+                    scoreDict.update({i: {'username': item[0], 'score': item[2]}})
+                    i += 1
+                response = scoreDict
         response = jsonify(response)
         response.headers.add("Access-Control-Allow-Origin", "*")
 
